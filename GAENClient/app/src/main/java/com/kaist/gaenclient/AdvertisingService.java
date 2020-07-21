@@ -21,6 +21,7 @@ import java.util.UUID;
 
 public class AdvertisingService extends Service {
     protected static final String TAG = "AdvertisingActivity";
+    private static final int ADVERTISE_MODE_BALANCED = 1;  // ~250ms
     private BeaconTransmitter beaconTransmitter = null;
 
     @Override
@@ -46,6 +47,7 @@ public class AdvertisingService extends Service {
         BeaconParser beaconParser = new BeaconParser()
                 .setBeaconLayout("s:0-1=fd6f,p:-:-59,i:2-17,d:18-21");
         beaconTransmitter = new BeaconTransmitter(ctx, beaconParser);
+        beaconTransmitter.setAdvertiseMode(ADVERTISE_MODE_BALANCED);
         beaconTransmitter.startAdvertising(beacon, new AdvertiseCallback() {
             @Override
             public void onStartFailure(int errorCode) {

@@ -81,9 +81,9 @@ public class GAENClientApplication extends Application implements BootstrapNotif
         // set both foreground and background equal.
         //
         beaconManager.setEnableScheduledScanJobs(false);
-        beaconManager.setForegroundBetweenScanPeriod(SCAN_PERIOD / 60);  // TEST: 5sec
+        beaconManager.setForegroundBetweenScanPeriod(SCAN_PERIOD);
         beaconManager.setForegroundScanPeriod(SCAN_DURATION);
-        beaconManager.setBackgroundBetweenScanPeriod(SCAN_PERIOD / 60);
+        beaconManager.setBackgroundBetweenScanPeriod(SCAN_PERIOD);
         beaconManager.setBackgroundScanPeriod(SCAN_DURATION);
 
         Log.d(TAG, "setting up background monitoring for beacons and power saving");

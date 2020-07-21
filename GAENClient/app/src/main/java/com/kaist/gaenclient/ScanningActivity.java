@@ -231,17 +231,19 @@ public class ScanningActivity extends Activity implements NonBeaconLeScanCallbac
 
 	@Override
 	public void onNonBeaconLeScan(BluetoothDevice device, int rssi, byte[] scanRecord) {
-		Log.i(TAG, "onNonBeaconLeScan:\n  device = " + device + ", rssi = " + rssi +
-				",\n  scanRecord = " + Arrays.toString(scanRecord));
+		Log.i(TAG, "onNonBeaconLeScan:\ndevice = " + device + ", rssi = " + rssi +
+				",\nscanRecord = " + Arrays.toString(scanRecord));
 		BleAdvertisement advert = new BleAdvertisement(scanRecord);
 		for (Pdu pdu: advert.getPdus()) {
 			// 3rd Pdu must exactly match GAEN service data format
 			// TODO: enforce exact GAEN payload? (1st flag, 2nd Service UUID, 3rd Service Data)
+			int st = pdu.getStartIndex();
+
 			if (pdu == null ||
 				pdu.getDeclaredLength() != 0x17 ||
-				pdu.getActualLength() < pdu.getDeclaredLength() ||
+				pdu.getActualLength() + 1 < pdu.getDeclaredLength() ||
 				pdu.getType() != Pdu.GATT_SERVICE_UUID_PDU_TYPE ||
-				scanRecord[2] != (byte) 0x6f || scanRecord[3] != (byte) 0xfd) {  // 0xfd6f
+				scanRecord[st] != (byte) 0x6f || scanRecord[st + 1] != (byte) 0xfd) {  // 0xfd6f
 				continue;
 			}
 			((GAENClientApplication) this.getApplicationContext()).logToDisplay(

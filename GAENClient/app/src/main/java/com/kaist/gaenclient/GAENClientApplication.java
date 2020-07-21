@@ -46,8 +46,8 @@ public class GAENClientApplication extends Application implements BootstrapNotif
         LogManager.setLogger(Loggers.verboseLogger());
 
         beaconManager.getBeaconParsers().clear();
-        beaconManager.getBeaconParsers().add(new BeaconParser().
-                setBeaconLayout("s:0-1=fd6f,p:-:-59,i:2-17,d:18-21"));
+        //beaconManager.getBeaconParsers().add(new BeaconParser().
+        //        setBeaconLayout("s:0-1=fd6f,p:-:-59,i:2-17,d:18-21"));
 
         // Uncomment the code below to use a foreground service to scan for beacons. This unlocks
         // the ability to continually scan for long periods of time in the background on Android 8+

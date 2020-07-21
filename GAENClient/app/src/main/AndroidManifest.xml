@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="org.altbeacon.beaconreference"
+    package="com.kaist.gaenclient"
     android:versionCode="1"
     android:versionName="1.0" >
 
@@ -13,9 +13,9 @@
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme" 
-        android:name="BeaconReferenceApplication">
+        android:name="GAENClientApplication">
         <activity
-            android:name="org.altbeacon.beaconreference.ScanningActivity"
+            android:name="com.kaist.gaenclient.ScanningActivity"
             android:launchMode="singleTask"
             android:label="@string/app_name" >
             <intent-filter>
@@ -24,7 +24,7 @@
             </intent-filter>
         </activity>
         <service
-            android:name="org.altbeacon.beaconreference.AdvertisingService"
+            android:name="com.kaist.gaenclient.AdvertisingService"
             android:label="@string/app_name" >
         </service>
         <!-- uncomment the following to enable scanning for over 30 minutes on Android 7+ -->

@@ -1,4 +1,4 @@
-package org.altbeacon.beaconreference;
+package com.kaist.gaenclient;
 
 import android.app.Application;
 import android.app.Notification;
@@ -28,8 +28,8 @@ import org.altbeacon.beacon.startup.BootstrapNotifier;
 /**
  * Created by dyoung on 12/13/13.
  */
-public class BeaconReferenceApplication extends Application implements BootstrapNotifier {
-    private static final String TAG = "BeaconReferenceApp";
+public class GAENClientApplication extends Application implements BootstrapNotifier {
+    private static final String TAG = "GAENClientApplication";
     private RegionBootstrap regionBootstrap;
     private BackgroundPowerSaver backgroundPowerSaver;
     private boolean haveDetectedBeaconsSinceBoot = false;
@@ -42,14 +42,7 @@ public class BeaconReferenceApplication extends Application implements Bootstrap
         super.onCreate();
         BeaconManager beaconManager = org.altbeacon.beacon.BeaconManager.getInstanceForApplication(this);
 
-        // By default the AndroidBeaconLibrary will only find AltBeacons.  If you wish to make it
-        // find a different type of beacon, you must specify the byte layout for that beacon's
-        // advertisement with a line like below.  The example shows how to find a beacon with the
-        // same byte layout as AltBeacon but with a beaconTypeCode of 0xaabb.  To find the proper
-        // layout expression for other beacon types, do a web search for "setBeaconLayout"
-        // including the quotes.
-        //
-
+        // Debug log
         LogManager.setLogger(Loggers.verboseLogger());
 
         beaconManager.getBeaconParsers().clear();
@@ -88,7 +81,7 @@ public class BeaconReferenceApplication extends Application implements Bootstrap
         // set both foreground and background equal.
         //
         beaconManager.setEnableScheduledScanJobs(false);
-        beaconManager.setForegroundBetweenScanPeriod(SCAN_PERIOD / 60);
+        beaconManager.setForegroundBetweenScanPeriod(SCAN_PERIOD / 60);  // TEST: 5sec
         beaconManager.setForegroundScanPeriod(SCAN_DURATION);
         beaconManager.setBackgroundBetweenScanPeriod(SCAN_PERIOD / 60);
         beaconManager.setBackgroundScanPeriod(SCAN_DURATION);

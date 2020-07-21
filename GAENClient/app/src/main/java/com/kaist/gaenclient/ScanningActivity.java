@@ -1,4 +1,4 @@
-package org.altbeacon.beaconreference;
+package com.kaist.gaenclient;
 
 import android.Manifest;
 import android.annotation.TargetApi;
@@ -33,6 +33,16 @@ public class ScanningActivity extends Activity implements BeaconConsumer {
 	private static final int PERMISSION_REQUEST_FINE_LOCATION = 1;
 	private static final int PERMISSION_REQUEST_BACKGROUND_LOCATION = 2;
 	private BeaconManager beaconManager = BeaconManager.getInstanceForApplication(this);
+	private RangeNotifier rangeNotifier = new RangeNotifier() {
+		@Override
+		public void didRangeBeaconsInRegion(Collection<Beacon> beacons, Region region) {
+			GAENClientApplication application = ((GAENClientApplication) getApplicationContext());
+			application.logToDisplay("didRangeBeaconsInRegion called with beacon count:  " + beacons.size());
+			for (Beacon beacon: beacons) {
+				application.logToDisplay("RPI: " + beacon.getId1() + ", AEM: " + Long.toHexString(beacon.getDataFields().get(0)));
+			}
+		}
+	};
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -151,9 +161,10 @@ public class ScanningActivity extends Activity implements BeaconConsumer {
 	}
 
 	public void onEnableClicked(View view) {
-		BeaconReferenceApplication application = ((BeaconReferenceApplication) this.getApplicationContext());
+		GAENClientApplication application = ((GAENClientApplication) this.getApplicationContext());
 		if (beaconManager.getMonitoredRegions().size() > 0) {
 			application.disableScanning();
+			beaconManager.removeRangeNotifier(rangeNotifier);
 			beaconManager.unbind(this);
 			((Button)findViewById(R.id.enableButton)).setText("Enable Scanning");
 		}
@@ -165,11 +176,10 @@ public class ScanningActivity extends Activity implements BeaconConsumer {
 
 	}
 
-	/// TODO: didRangeBeaconsInRegion callback duplication bug
     @Override
     public void onResume() {
         super.onResume();
-        BeaconReferenceApplication application = ((BeaconReferenceApplication) this.getApplicationContext());
+		GAENClientApplication application = ((GAENClientApplication) this.getApplicationContext());
         application.setScanningActivity(this);
         beaconManager.bind(this);
         updateLog(application.getLog());
@@ -178,7 +188,8 @@ public class ScanningActivity extends Activity implements BeaconConsumer {
     @Override
     public void onPause() {
         super.onPause();
-        ((BeaconReferenceApplication) this.getApplicationContext()).setScanningActivity(null);
+        ((GAENClientApplication) this.getApplicationContext()).setScanningActivity(null);
+		beaconManager.removeRangeNotifier(rangeNotifier);
 		beaconManager.unbind(this);
     }
 
@@ -227,18 +238,11 @@ public class ScanningActivity extends Activity implements BeaconConsumer {
     	});
     }
 
+    /// TODO: much LoS due to library automatically processing ranging/monitoring features.
+	/// Remove all packet match filters, then use setNonBeaconLeScanCallback to manually filter out
+	/// all packets and process as necessary. Do we still lose packets?
 	@Override
 	public void onBeaconServiceConnect() {
-		RangeNotifier rangeNotifier = new RangeNotifier() {
-			@Override
-			public void didRangeBeaconsInRegion(Collection<Beacon> beacons, Region region) {
-				BeaconReferenceApplication application = ((BeaconReferenceApplication) getApplicationContext());
-				application.logToDisplay("didRangeBeaconsInRegion called with beacon count:  " + beacons.size());
-				for (Beacon beacon: beacons) {
-					application.logToDisplay("RPI: " + beacon.getId1() + ", AEM: " + Long.toHexString(beacon.getDataFields().get(0)));
-				}
-			}
-		};
 		try {
 			beaconManager.startRangingBeaconsInRegion(new Region("myRangingUniqueId", null, null, null));
 			beaconManager.addRangeNotifier(rangeNotifier);

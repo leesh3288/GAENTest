@@ -1,4 +1,4 @@
-package org.altbeacon.beaconreference;
+package com.kaist.gaenclient;
 
 import android.app.Service;
 import android.bluetooth.le.AdvertiseCallback;

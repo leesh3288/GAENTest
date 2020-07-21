@@ -22,6 +22,7 @@ import org.altbeacon.beacon.BeaconManager;
 import org.altbeacon.beacon.RangeNotifier;
 import org.altbeacon.beacon.Region;
 import org.altbeacon.beacon.service.scanner.NonBeaconLeScanCallback;
+import org.altbeacon.bluetooth.BleAdvertisement;
 import org.altbeacon.bluetooth.Pdu;
 
 import java.util.Arrays;
@@ -230,16 +231,22 @@ public class ScanningActivity extends Activity implements NonBeaconLeScanCallbac
 
 	@Override
 	public void onNonBeaconLeScan(BluetoothDevice device, int rssi, byte[] scanRecord) {
-		// Payload must exactly match GAEN service data format
-		Pdu pdu = Pdu.parse(scanRecord, 0);
-		if (pdu == null ||
-		    pdu.getActualLength() >= pdu.getDeclaredLength() ||
-		    pdu.getDeclaredLength() != 0x17 ||
-		    pdu.getType() != Pdu.GATT_SERVICE_UUID_PDU_TYPE ||
-		    scanRecord[2] != (byte)0x6f || scanRecord[3] != (byte)0xfd) {  // 0xfd6f
-			return;
+		Log.i(TAG, "onNonBeaconLeScan:\n  device = " + device + ", rssi = " + rssi +
+				",\n  scanRecord = " + Arrays.toString(scanRecord));
+		BleAdvertisement advert = new BleAdvertisement(scanRecord);
+		for (Pdu pdu: advert.getPdus()) {
+			// 3rd Pdu must exactly match GAEN service data format
+			// TODO: enforce exact GAEN payload? (1st flag, 2nd Service UUID, 3rd Service Data)
+			if (pdu == null ||
+				pdu.getDeclaredLength() != 0x17 ||
+				pdu.getActualLength() < pdu.getDeclaredLength() ||
+				pdu.getType() != Pdu.GATT_SERVICE_UUID_PDU_TYPE ||
+				scanRecord[2] != (byte) 0x6f || scanRecord[3] != (byte) 0xfd) {  // 0xfd6f
+				continue;
+			}
+			((GAENClientApplication) this.getApplicationContext()).logToDisplay(
+					"scanRecord: " + Arrays.toString(scanRecord) + ", RSSI: " + rssi);
+			break;  // this should've been the last pdu
 		}
-		((GAENClientApplication) this.getApplicationContext()).logToDisplay(
-				"scanRecord: " + Arrays.toString(scanRecord) + ", RSSI: " + rssi);
 	}
 }

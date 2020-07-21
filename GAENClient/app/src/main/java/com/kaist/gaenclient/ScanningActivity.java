@@ -239,8 +239,7 @@ public class ScanningActivity extends Activity implements NonBeaconLeScanCallbac
 			// TODO: enforce exact GAEN payload? (1st flag, 2nd Service UUID, 3rd Service Data)
 			int st = pdu.getStartIndex();
 
-			if (pdu == null ||
-				pdu.getDeclaredLength() != 0x17 ||
+			if (pdu.getDeclaredLength() != 0x17 ||
 				pdu.getActualLength() + 1 < pdu.getDeclaredLength() ||
 				pdu.getType() != Pdu.GATT_SERVICE_UUID_PDU_TYPE ||
 				scanRecord[st] != (byte) 0x6f || scanRecord[st + 1] != (byte) 0xfd) {  // 0xfd6f

@@ -35,8 +35,6 @@ public class GAENClientApplication extends Application implements BootstrapNotif
     private boolean haveDetectedBeaconsSinceBoot = false;
     private ScanningActivity scanningActivity = null;
     private String cumulativeLog = "";
-    private static long SCAN_PERIOD = 5 * 60 * 1000;  // 5 minutes
-    private static long SCAN_DURATION = 8 * 1000;     // 8 seconds
 
     public void onCreate() {
         super.onCreate();
@@ -81,10 +79,10 @@ public class GAENClientApplication extends Application implements BootstrapNotif
         // set both foreground and background equal.
         //
         beaconManager.setEnableScheduledScanJobs(false);
-        beaconManager.setForegroundBetweenScanPeriod(SCAN_PERIOD);
-        beaconManager.setForegroundScanPeriod(SCAN_DURATION);
-        beaconManager.setBackgroundBetweenScanPeriod(SCAN_PERIOD);
-        beaconManager.setBackgroundScanPeriod(SCAN_DURATION);
+        beaconManager.setForegroundBetweenScanPeriod(Config.SCAN_PERIOD);
+        beaconManager.setForegroundScanPeriod(Config.SCAN_DURATION);
+        beaconManager.setBackgroundBetweenScanPeriod(Config.SCAN_PERIOD);
+        beaconManager.setBackgroundScanPeriod(Config.SCAN_DURATION);
 
         Log.d(TAG, "setting up background monitoring for beacons and power saving");
         // wake up the app when a beacon is seen
@@ -112,6 +110,7 @@ public class GAENClientApplication extends Application implements BootstrapNotif
             regionBootstrap = null;
         }
     }
+
     public void enableScanning() {
         Region region = new Region("backgroundRegion",
                 null, null, null);

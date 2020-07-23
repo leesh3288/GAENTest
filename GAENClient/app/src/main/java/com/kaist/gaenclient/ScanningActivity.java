@@ -167,7 +167,6 @@ public class ScanningActivity extends Activity implements NonBeaconLeScanCallbac
 			((Button)findViewById(R.id.enableButton)).setText("Disable Scanning");
 			application.enableScanning();
 		}
-
 	}
 
     @Override

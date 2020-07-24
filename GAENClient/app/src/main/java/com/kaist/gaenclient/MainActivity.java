@@ -21,7 +21,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
+import android.os.Handler;
+import android.os.ParcelUuid;
 import android.util.Log;
 import android.view.View;
 import android.widget.CompoundButton;
@@ -30,8 +31,6 @@ import androidx.databinding.DataBindingUtil;
 
 import com.kaist.gaenclient.databinding.ActivityMainBinding;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -50,6 +49,18 @@ public class MainActivity extends Activity{
     private String deviceId;
 
     private ActivityMainBinding mBinding;
+    private Handler sHandler;
+//    private Handler aHandler;
+
+    // Config variables
+    private long SCAN_PERIOD = Config.SCAN_PERIOD;
+    private long SCAN_DURATION = Config.SCAN_DURATION;
+//    private long ADVERTISE_PERIOD = Config.ADVERTISE_PERIOD;
+//    private long ADVERTISE_DURATION = Config.ADVERTISE_DURATION;
+    private ParcelUuid SERVICE_UUID = Config.SERVICE_UUID;
+    private int advertiseMode = Config.advertiseMode;
+    private int advertiseTxPower = Config.advertiseTxPower;
+    private int scanMode = Config.scanMode;
 
     // Callbacks
     private AdvertiseCallback mAdvertiseCallback = new AdvertiseCallback() {
@@ -64,7 +75,6 @@ public class MainActivity extends Activity{
             log("Advertisement start succeeded.");
         }
     };
-//    private ScanCallback mScanCallback = new BtleScanCallback();
     private ScanCallback mScanCallback = new ScanCallback() {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
@@ -100,7 +110,8 @@ public class MainActivity extends Activity{
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothLeAdvertiser mBluetoothLeAdvertiser;
     private BluetoothLeScanner mBluetoothLeScanner;
-    private boolean mScanning;
+    private boolean mScanning = false;
+    private boolean enabledScanning = false;
 
     /**
      * Lifecycle
@@ -191,19 +202,18 @@ public class MainActivity extends Activity{
         mBinding.advertiseSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) { if(isChecked) {
-                    startAdvertising();
+                    enableAdvertising();
                 } else {
-                    stopAdvertising();
+                    disableAdvertising();
                 } }
         });
         mBinding.scanSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) { if(isChecked) {
-                    startScan();
+                    enableScan();
                 } else {
-                    stopScan();
-                } }
-        });
+                    disableScan();
+                }}});
         mBinding.fetchConfigButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) { fetchConfig(); }
@@ -217,6 +227,12 @@ public class MainActivity extends Activity{
         mBinding.clearButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) { mBinding.logTextview.setText("");
+            }
+        });
+        mBinding.testButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                test();
             }
         });
 
@@ -338,16 +354,34 @@ public class MainActivity extends Activity{
      * Advertising
      */
 
+    // Listener method for scanSwitch
+    private void enableAdvertising() {
+        if(!hasPermissions()) {
+            mBinding.advertiseSwitch.setChecked(false);
+            logError("Permissions & bluetooth requirement not met");
+            return;
+        } else {
+            log("Enabled advertising.");
+            startAdvertising();
+        }
+    }
+
+    // Listener method for scanSwitch
+    private void disableAdvertising() {
+        log("Disabled advertising.");
+        stopAdvertising();
+    }
+
     private void startAdvertising() {
         if (mBluetoothLeAdvertiser == null) {
             return;
         }
 
         AdvertiseSettings settings = new AdvertiseSettings.Builder()
-                .setAdvertiseMode(Config.advertiseMode)
+                .setAdvertiseMode(advertiseMode)
                 .setConnectable(true)   // NOTE: This is set to true because we want connection (thus adds a flag)
                 .setTimeout(0)
-                .setTxPowerLevel(Config.advertiseTxPower)
+                .setTxPowerLevel(advertiseTxPower)
                 .build();
 
         // Service data payload, as in GAEN protocol
@@ -368,8 +402,8 @@ public class MainActivity extends Activity{
             advertisingBytes[i + 16] = AEM[i];
 
         AdvertiseData data = new AdvertiseData.Builder()
-                .addServiceData(Config.SERVICE_UUID, advertisingBytes)
-                .addServiceUuid(Config.SERVICE_UUID)
+                .addServiceData(SERVICE_UUID, advertisingBytes)
+                .addServiceUuid(SERVICE_UUID)
                 .setIncludeTxPowerLevel(false)  // txPower in AEM
                 .setIncludeDeviceName(false)
                 .build();
@@ -393,9 +427,35 @@ public class MainActivity extends Activity{
      * Scanning
      */
 
-    //TODO: Turn scanning on/off periodically (always on, for now)
+    // Listener method for scanSwitch
+    private void enableScan() {
+        enabledScanning = true;
+        if(!hasPermissions()) {
+            mBinding.scanSwitch.setChecked(false);
+            enabledScanning = false;
+            logError("Permissions & bluetooth requirement not met");
+        } else {
+            log("Enabled scanning.");
+            //TODO: Turn scanning on/off periodically (always on for now)
+            startScan();
+        }
+    }
+
+    // Listener method for scanSwitch
+    private void disableScan() {
+        enabledScanning = false;
+        log("Disabled scanning.");
+        stopScan();
+    }
+
+    // Start scanning
     private void startScan() {
         if (!hasPermissions() || mScanning) {
+            log("Failed to start scan. Permission is not granted, or the device is already scanning.");
+            return;
+        }
+        if (!enabledScanning) {
+            log("Failed to start scan. Scanning is disabled now.");
             return;
         }
 
@@ -407,29 +467,40 @@ public class MainActivity extends Activity{
         // For example, when looking for a brand of device that contains a char sequence in the UUID
 
         ScanFilter scanFilter = new ScanFilter.Builder()
-                .setServiceUuid(Config.SERVICE_UUID)
+                .setServiceUuid(SERVICE_UUID)
                 .build();
         List<ScanFilter> filters = new ArrayList<>();
         filters.add(scanFilter);
 
         ScanSettings settings = new ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
+                .setScanMode(scanMode)
                 .build();
 
         mBluetoothLeScanner.startScan(filters, settings, mScanCallback);
+
+        sHandler = new Handler();
+        sHandler.postDelayed(this::stopScan, SCAN_DURATION);
 
         mScanning = true;
         log("Started scanning.");
     }
 
+    // Stop scanning
     private void stopScan() {
+        sHandler = null;
         if (mScanning && mBluetoothAdapter != null && mBluetoothAdapter.isEnabled() && mBluetoothLeScanner != null) {
             mBluetoothLeScanner.stopScan(mScanCallback);
+            if (enabledScanning) {
+                sHandler = new Handler();
+                sHandler.postDelayed(this::startScan, SCAN_PERIOD - SCAN_DURATION);
+            }
+            log("Stopped scanning.");
+        } else if (!mScanning) {
+            log("Failed to stop scanning. The device is not scanning now.");
+        } else {
+            logError("Failed to stop scanning. mScanning: " + mScanning + ", mBluetoothAdapter: " +mBluetoothAdapter + ", isEnables: " + mBluetoothAdapter.isEnabled() + ", mBleutoothLeScanner: " + mBluetoothLeScanner);
         }
-
         mScanning = false;
-
-        log("Stopped scanning.");
     }
 
     /**
@@ -458,5 +529,17 @@ public class MainActivity extends Activity{
     //TODO: Implement server & related functions
     private void fetchConfig() {
         log("Fetch config.");
+    }
+
+    /**
+     * Test functions
+     */
+    private void test() {
+        if(advertiseMode == AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY) {
+            advertiseMode = AdvertiseSettings.ADVERTISE_MODE_LOW_POWER;
+        }
+        else {
+            advertiseMode = AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY;
+        }
     }
 }

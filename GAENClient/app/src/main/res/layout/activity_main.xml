@@ -63,13 +63,28 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Fetch Config" />
+
         </LinearLayout>
 
-        <Button
-            android:id="@+id/clear_button"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Clear Log" />
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/clear_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Clear Log" />
+
+            <Button
+                android:id="@+id/testButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Test"/>
+        </LinearLayout>
 
         <ScrollView
             android:layout_width="match_parent"
@@ -79,7 +94,7 @@
                 android:id="@+id/log_textview"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="" />
+                android:text="asdf" />
         </ScrollView>
 
     </LinearLayout>

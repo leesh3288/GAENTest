@@ -2,8 +2,14 @@ package com.kaist.gaenclient;
 
 import android.os.ParcelUuid;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class Utils {
@@ -59,5 +65,40 @@ public class Utils {
         long msb = BASE_UUID.getUuid().getMostSignificantBits() + (shortUuid << 32);
         long lsb = BASE_UUID.getUuid().getLeastSignificantBits();
         return new ParcelUuid(new UUID(msb, lsb));
+    }
+
+    // Opens, reads and parses a CSV file from given InputStream.
+    // Reference: https://stackoverflow.com/a/38415815
+    public static class CSVFile {
+        InputStream inputStream;
+
+        public CSVFile(InputStream inputStream){
+            this.inputStream = inputStream;
+        }
+
+        public List<String[]> read() throws RuntimeException {
+            List<String[]> resultList = new ArrayList<String[]>();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            try {
+                String csvLine;
+                while ((csvLine = reader.readLine()) != null) {
+                    String[] row = csvLine.split(",");
+                    resultList.add(row);
+                }
+            }
+            catch (IOException e) {
+                throw new RuntimeException("Error in reading CSV file: " + e);
+            }
+            finally {
+                try {
+                    inputStream.close();
+                }
+                catch (IOException e) {
+                    //noinspection ThrowFromFinallyBlock
+                    throw new RuntimeException("Error while closing input stream: " + e);
+                }
+            }
+            return resultList;
+        }
     }
 }

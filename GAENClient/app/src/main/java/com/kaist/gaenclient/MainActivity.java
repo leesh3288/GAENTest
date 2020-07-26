@@ -31,9 +31,13 @@ import androidx.databinding.DataBindingUtil;
 
 import com.kaist.gaenclient.databinding.ActivityMainBinding;
 
+import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 /**
  *
@@ -58,9 +62,19 @@ public class MainActivity extends Activity{
 //    private long ADVERTISE_PERIOD = Config.ADVERTISE_PERIOD;
 //    private long ADVERTISE_DURATION = Config.ADVERTISE_DURATION;
     private ParcelUuid SERVICE_UUID = Config.SERVICE_UUID;
+    private byte PROTOCOL_VER = Config.PROTOCOL_VER;
     private int advertiseMode = Config.advertiseMode;
     private int advertiseTxPower = Config.advertiseTxPower;
     private int scanMode = Config.scanMode;
+
+    // Device info
+    private String DEVICE_MODEL = Build.MODEL.toLowerCase();
+    private String DEVICE_OEM = Build.MANUFACTURER.toLowerCase();
+
+    // Attenuation = TX_power - (RSSI_measured + RSSI_correction)
+    // Default values are set to maximize calculated attenuation.
+    private byte txPower = 127;
+    private byte rssiCorrection = -128;
 
     // Callbacks
     private AdvertiseCallback mAdvertiseCallback = new AdvertiseCallback() {
@@ -239,6 +253,9 @@ public class MainActivity extends Activity{
         // Set device id
         deviceId = this.getIntent().getStringExtra("deviceId");
         mBinding.deviceId.setText("Device ID: "+deviceId);
+
+        // Load calibration data
+        loadCalibrationData();
 	}
 
 
@@ -359,7 +376,6 @@ public class MainActivity extends Activity{
         if(!hasPermissions()) {
             mBinding.advertiseSwitch.setChecked(false);
             logError("Permissions & bluetooth requirement not met");
-            return;
         } else {
             log("Enabled advertising.");
             startAdvertising();
@@ -388,23 +404,21 @@ public class MainActivity extends Activity{
         byte[] RPI = new byte[16], AEM = new byte[4];
         byte[] advertisingBytes = new byte[20];
 
-        // TODO: Customize advertisingBytes using deviceId
+        // TODO: Customize RPI using deviceId
         // TEST: RPI as "01020304-0506-0708-090a-0b0c0d0e0f10"
-        // TEST: AEM as 0xc001caf3
         for (int i = 0; i < RPI.length; i++)
             RPI[i] = (byte)(i + 1);
-        AEM[0] = (byte)0xc0; AEM[1] = (byte)0x01;
-        AEM[2] = (byte)0xca; AEM[3] = (byte)0xf3;
+        AEM[0] = PROTOCOL_VER;
+        AEM[1] = txPower;
+        AEM[2] = AEM[3] = 0;
 
-        for (int i = 0; i < RPI.length; i++)
-            advertisingBytes[i] = RPI[i];
-        for (int i = 0; i < AEM.length; i++)
-            advertisingBytes[i + 16] = AEM[i];
+        System.arraycopy(RPI, 0, advertisingBytes, 0, RPI.length);
+        System.arraycopy(AEM, 0, advertisingBytes, RPI.length, AEM.length);
 
         AdvertiseData data = new AdvertiseData.Builder()
                 .addServiceData(SERVICE_UUID, advertisingBytes)
                 .addServiceUuid(SERVICE_UUID)
-                .setIncludeTxPowerLevel(false)  // txPower in AEM
+                .setIncludeTxPowerLevel(false)
                 .setIncludeDeviceName(false)
                 .build();
 
@@ -420,6 +434,90 @@ public class MainActivity extends Activity{
         if (mBluetoothLeAdvertiser != null) {
             mBluetoothLeAdvertiser.stopAdvertising(mAdvertiseCallback);
             log("Stopped advertising.");
+        }
+    }
+
+    private void loadCalibrationData() {
+        InputStream inputStream = getResources().openRawResource(R.raw.calibration);
+        List<String[]> data = new Utils.CSVFile(inputStream).read();
+
+        if (data.size() < 2) {
+            logError("Calibration data load failed.");
+            return;
+        }
+
+        // Load indices
+        List<String> headerRow = Arrays.asList(data.remove(0));
+        int idx_oem = headerRow.indexOf("oem");
+        int idx_model = headerRow.indexOf("model");
+        int idx_corr = headerRow.indexOf("rssi correction");
+        int idx_tx = headerRow.indexOf("tx");
+        int idx_conf = headerRow.indexOf("calibration confidence");
+
+        List<Integer> indices = Arrays.asList(idx_oem, idx_model, idx_corr, idx_tx, idx_conf);
+        int maxIndex = Collections.max(indices);
+
+        if (indices.contains(-1)) {
+            logError("Calibration data CSV header malformed.");
+            return;
+        }
+
+        /* 1. Model
+         * 2. Average over OEM match
+         * 3. Average over all devices
+         */
+
+        int allTx = 0, allCorr = 0, allCount = 0, oemTx = 0, oemCorr = 0, oemCount = 0;
+
+        for (String[] deviceData: data) {
+            if (deviceData.length < maxIndex + 1)
+                continue;
+
+            byte tx, corr;
+            try {
+                tx = (byte) Integer.parseInt(deviceData[idx_tx]);
+                corr = (byte) Integer.parseInt(deviceData[idx_corr]);
+            } catch (NumberFormatException ignored) {
+                continue;  // ignore malformed data
+            }
+
+            // Model match
+            if (deviceData[idx_model].toLowerCase().equals(DEVICE_MODEL)) {
+                txPower = tx;
+                rssiCorrection = corr;
+                log(String.format(Locale.getDefault(),
+                        "Using model-matched calibration data.\n > OEM: %s (CSV indicates: %s)\n > Model: %s\n > TX_power: %d\n > RSSI_correction: %d\n > Confidence: %s",
+                        DEVICE_OEM, deviceData[idx_oem].toLowerCase(), DEVICE_MODEL, txPower, rssiCorrection, deviceData[idx_conf]));
+                return;
+            }
+
+            if (deviceData[idx_oem].toLowerCase().equals(DEVICE_OEM)) {
+                oemTx += tx;
+                oemCorr += corr;
+                oemCount++;
+            }
+
+            allTx += tx;
+            allCorr += corr;
+            allCount++;
+        }
+
+        if (oemCount > 0) {
+            // OEM matches
+            txPower = (byte)((float)oemTx / oemCount + 0.5);
+            rssiCorrection = (byte)((float)oemCorr / oemCount + 0.5);
+            log(String.format(Locale.getDefault(),
+                    "Using average of OEM-matched calibration data.\n > OEM: %s\n > Model: %s\n > TX_power: %d\n > RSSI_correction: %d",
+                    DEVICE_OEM, DEVICE_MODEL, txPower, rssiCorrection));
+        } else if (allCount > 0) {
+            // No match, use average of all devices
+            txPower = (byte)((float)allTx / allCount + 0.5);
+            rssiCorrection = (byte)((float)allCorr / allCount + 0.5);
+            log(String.format(Locale.getDefault(),
+                    "Using average of all calibration data.\n > OEM: %s\n > Model: %s\n > TX_power: %d\n > RSSI_correction: %d",
+                    DEVICE_OEM, DEVICE_MODEL, txPower, rssiCorrection));
+        } else {
+            logError("Failed to find any valid calibration data.");
         }
     }
 
@@ -474,6 +572,9 @@ public class MainActivity extends Activity{
 
         ScanSettings settings = new ScanSettings.Builder()
                 .setScanMode(scanMode)
+                .setReportDelay(0)
+                .setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
+                .setNumOfMatches(ScanSettings.MATCH_NUM_MAX_ADVERTISEMENT)
                 .build();
 
         mBluetoothLeScanner.startScan(filters, settings, mScanCallback);
@@ -536,7 +637,7 @@ public class MainActivity extends Activity{
      */
     private void test() {
         if(advertiseMode == AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY) {
-            advertiseMode = AdvertiseSettings.ADVERTISE_MODE_LOW_POWER;
+            advertiseMode = Config.advertiseMode;
         }
         else {
             advertiseMode = AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY;

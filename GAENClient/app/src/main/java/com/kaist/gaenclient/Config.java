@@ -11,12 +11,23 @@ public class Config {
 //    public static long ADVERTISE_DURATION = 3*1000; // 8 * 1000;     // 8 seconds
     public static ParcelUuid SERVICE_UUID = Utils.parseUuidFrom(new byte[] { (byte)0x6f, (byte)0xfd });
 
-    // Can be ADVERTISE_MODE_BALANCED/LOW_LATENCY/LOW_POWER
-    public static int advertiseMode = AdvertiseSettings.ADVERTISE_MODE_LOW_POWER;
-    // Can be ADVERTISE_TX_POWER_HIGH/MEDIUM/LOW/ULTRA_LOW
-    public static int advertiseTxPower = AdvertiseSettings.ADVERTISE_TX_POWER_HIGH;  // High, since high Tx power would give more precise results
-    // Can be SCAN_MODE_BALANCED/LOW_LATENCY/LOW_POWER/OPPERTUNISTIC
-    public static int scanMode = ScanSettings.SCAN_MODE_LOW_POWER;
+    public static byte PROTOCOL_VER = 0b01000000;  // Major 01, Minor 00, reserved 0000
+
+    /* Can be ADVERTISE_MODE_BALANCED/LOW_LATENCY/LOW_POWER
+     * Each translates into 250/100/1000ms advertising interval
+     * Reference: https://www.sciencedirect.com/science/article/pii/S1877050919309238
+     */
+    public static int advertiseMode = AdvertiseSettings.ADVERTISE_MODE_BALANCED;
+    /* Can be ADVERTISE_TX_POWER_HIGH/MEDIUM/LOW/ULTRA_LOW
+     * GAEN framework and its corresponding calibration data is based on ADVERTISE_TX_POWER_LOW
+     */
+    public static int advertiseTxPower = AdvertiseSettings.ADVERTISE_TX_POWER_LOW;
+    // Can be SCAN_MODE_BALANCED/LOW_LATENCY/LOW_POWER/OPPORTUNISTIC
+    public static int scanMode = ScanSettings.SCAN_MODE_BALANCED;
+
+    /* Precise control over advertisement (interval, address anonymity) works only on
+     * API level 26 or above, and thus is omitted.
+     */
 
     // Server
 

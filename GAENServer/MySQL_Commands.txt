@@ -1,0 +1,33 @@
+// Create database
+CREATE DATABASE gaen_db;
+
+// Create new user
+CREATE USER 'GAEN'@'localhost' IDENTIFIED BY 'GAENtest';
+GRANT ALL PRIVILEGES ON gaen_db.* TO 'GAEN'@'localhost';
+
+// Log in as new user
+
+// Create tables
+use gaen_db;
+CREATE TABLE logs (
+    myId VARCHAR(31) NOT NULL,
+    time TIMESTAMP NOT NULL,
+    logType INT,
+    otherId VARCHAR(31),
+    rssi INT,
+    tx INT,
+    PRIMARY KEY (myId, time, logType)
+);
+CREATE TABLE config (
+    version INT NOT NULL PRIMARY KEY,
+    SCAN_PERIOD BIGINT NOT NULL,
+    SCAN_DURATION BIGINT NOT NULL,
+    SERVICE_UUID VARCHAR(31) NOT NULL,
+    advertiseMode INT NOT NULL,
+    advertiseTxPower INT NOT NULL,
+    scanMode INT NOT NULL
+);
+
+// Initialize config
+INSERT IGNORE INTO config (version, SCAN_PERIOD, SCAN_DURATION, SERVICE_UUID, advertiseMode, advertiseTxPower, scanMode) 
+VALUES (0, 300000, 8000, 'aa', 0, 3, 0);

@@ -30,5 +30,5 @@ public class Config {
      */
 
     // Server
-
+    public static String serverUrl = "192.249.19.249:4580";
 }

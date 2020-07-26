@@ -31,8 +31,14 @@ import androidx.databinding.DataBindingUtil;
 
 import com.kaist.gaenclient.databinding.ActivityMainBinding;
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Array;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -66,6 +72,7 @@ public class MainActivity extends Activity{
     private int advertiseMode = Config.advertiseMode;
     private int advertiseTxPower = Config.advertiseTxPower;
     private int scanMode = Config.scanMode;
+    private String serverUrl = Config.serverUrl;
 
     // Device info
     private String DEVICE_MODEL = Build.MODEL.toLowerCase();
@@ -636,11 +643,30 @@ public class MainActivity extends Activity{
      * Test functions
      */
     private void test() {
-        if(advertiseMode == AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY) {
-            advertiseMode = Config.advertiseMode;
-        }
-        else {
-            advertiseMode = AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY;
-        }
+        new Thread(){
+            @Override
+            public void run() {
+                try {
+                    URL url = new URL("http://" + serverUrl + "/test");
+                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                    connection.setRequestMethod("GET"); //전송방식
+                    connection.setDoOutput(true);       //데이터를 쓸 지 설정
+                    connection.setDoInput(true);        //데이터를 읽어올지 설정
+
+                    InputStream is = connection.getInputStream();
+                    StringBuilder sb = new StringBuilder();
+                    BufferedReader br = new BufferedReader(new InputStreamReader(is,"UTF-8"));
+                    String result;
+                    while((result = br.readLine())!=null){
+                        sb.append(result+"\n");
+                    }
+
+                    log(sb.toString());
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }.start();
     }
 }

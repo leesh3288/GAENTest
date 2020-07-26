@@ -3,6 +3,9 @@ import {Entity, PrimaryGeneratedColumn, Column, BaseEntity, Index, UpdateDateCol
 @Entity({name: "logs"})
 @Index(["myId", "time", "logType"], { unique: true })
 export class Log extends BaseEntity {
+    @PrimaryGeneratedColumn()
+    id: number;
+
     @Column("varchar", {nullable: false, length: 31})
     myId: string;
 

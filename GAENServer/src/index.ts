@@ -12,8 +12,8 @@ createConnection().then(async connection => {
     
     const config = new Config();
     config.version = 0;
-    config.SCAN_PERIOD = 300000;
-    config.SCAN_DURATION = 8000;
+    config.SCAN_PERIOD = '300000';
+    config.SCAN_DURATION = '8000';
     config.SERVICE_UUID = 'aa';
     config.advertiseMode = 0;
     config.advertiseTxPower = 3;

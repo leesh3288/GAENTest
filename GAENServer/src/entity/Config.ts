@@ -6,10 +6,10 @@ export class Config extends BaseEntity {
     version: number;
 
     @Column("bigint", {nullable: false})
-    SCAN_PERIOD: number;
+    SCAN_PERIOD: string;
 
     @Column("bigint", {nullable: false})
-    SCAN_DURATION: number;
+    SCAN_DURATION: string;
 
     @Column("varchar", {nullable: false, length: 31})
     SERVICE_UUID: string;

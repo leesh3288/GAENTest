@@ -2,6 +2,7 @@ package com.kaist.gaenclient;
 
 import android.bluetooth.le.ScanRecord;
 import android.bluetooth.le.ScanResult;
+import android.os.SystemClock;
 
 import androidx.annotation.NonNull;
 
@@ -47,7 +48,9 @@ public class ScanLogEntry {
         ScanLogEntry entry = new ScanLogEntry();
 
         entry.myId = myId;
-        entry.time = result.getTimestampNanos();
+        entry.time = System.currentTimeMillis() -
+                SystemClock.elapsedRealtime() +
+                result.getTimestampNanos() / 1000000;
         entry.logType = 0;  // TODO: field useful or not?
         entry.otherId = Utils.UUIDConvert.asUuid(Arrays.copyOfRange(data, 0xb, 0x1b));
         entry.rssi = result.getRssi();

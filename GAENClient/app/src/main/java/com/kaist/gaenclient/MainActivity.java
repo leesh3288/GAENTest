@@ -654,8 +654,10 @@ public class MainActivity extends Activity{
                     scansToUpload = new ArrayList<ScanLogEntry>(scanned);
                     scanned.clear();
                 }
-                if (scansToUpload.size() == 0)
+                if (scansToUpload.size() == 0) {
+                    log("No scan results to upload.");
                     return;
+                }
 
                 JSONArray jsonArray = new JSONArray();
                 for (ScanLogEntry entry: scansToUpload) {
@@ -663,8 +665,10 @@ public class MainActivity extends Activity{
                     if (jsonObject != null)
                         jsonArray.put(jsonObject);
                 }
-                if (jsonArray.length() == 0)
+                if (jsonArray.length() == 0) {
+                    log("No valid scan results to upload.");
                     return;
+                }
 
                 String jsonMessage = jsonArray.toString();
                 log("uploadServer data: " + jsonMessage);
@@ -703,11 +707,13 @@ public class MainActivity extends Activity{
                         logError("uploadServer failed (" + status + "), response: " + c.getResponseMessage());
                     }
                 } catch (SocketTimeoutException e) {
-                    logError("uploadServer timed out.");
+                    logError("uploadServer timed out, data reinserted for later upload.");
                     e.printStackTrace();
+                    scanned.addAll(scansToUpload);  // reinsert data
                 } catch (IOException e) {
-                    logError("uploadServer IOException raised.");
+                    logError("uploadServer IOException raised, data reinserted for later upload.");
                     e.printStackTrace();
+                    scanned.addAll(scansToUpload);
                 } finally {
                     if (c != null) {
                         try {

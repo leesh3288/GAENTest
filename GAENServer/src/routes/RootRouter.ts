@@ -11,9 +11,10 @@ RootRouter.get('/config', asyncHandler(async (req, res, next) => {
     let config: Config;
     try {
         config = await db.manager.getRepository(Config).findOne();
-    } catch {
+    } catch (e) {
         res.status(500).send("Failed to fetch config.");
-        console.log("Failed to fetch config, check DB status!");
+        console.log("Failed to fetch config. Exception:");
+        console.log(e);
         return;
     }
     res.status(200).send(config);
@@ -28,7 +29,7 @@ RootRouter.put('/log', asyncHandler(async (req, res, next) => {
 
     const logs: Log[] = [];
     for (const entry of req.body) {
-        if (entry === null || entry === undefined || Number.isInteger(entry.time)) {
+        if (entry === null || entry === undefined || !Number.isInteger(entry.time)) {
             continue;
         }
         const log = new Log();
@@ -41,13 +42,18 @@ RootRouter.put('/log', asyncHandler(async (req, res, next) => {
         log.attenuation = entry.attenuation;
         logs.push(log);
     }
+    if (logs.length == 0) {
+        res.status(400).send("No well-formed logs to save.");
+        return;
+    }
 
     let savedLogs: Log[];
     try {
         savedLogs = await db.manager.getRepository(Log).save(logs);
-    } catch {
+    } catch (e) {
         res.status(400).send("Failed to save logs, check if data is well-formed.");
-        console.log("Failed to save logs, body: " + req.body);
+        console.log("Failed to save logs. Exception:");
+        console.log(e);
         return;
     }
     res.status(201).send("Saved " + savedLogs.length + " logs.");

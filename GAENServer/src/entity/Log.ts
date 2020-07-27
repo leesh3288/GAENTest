@@ -13,7 +13,7 @@ export class Log extends ValidationEntity {
     myId: string;
 
     @IsDate()
-    @Column("timestamp", {nullable: false})
+    @Column("timestamp", {nullable: false, precision: 6})
     time: Date;
 
     @IsOptional()

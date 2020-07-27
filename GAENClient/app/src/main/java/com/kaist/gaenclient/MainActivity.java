@@ -704,12 +704,21 @@ public class MainActivity extends Activity{
                         }
                         log("uploadServer success, response: " + sb.toString());
                     } else {
-                        logError("uploadServer failed (" + status + "), response: " + c.getResponseMessage());
+                        StringBuilder sb = new StringBuilder();
+                        InputStream es = c.getErrorStream();
+                        try (BufferedReader br = new BufferedReader(new InputStreamReader(es, StandardCharsets.UTF_8))) {
+                            String result;
+                            while ((result = br.readLine()) != null) {
+                                sb.append(result).append("\n");
+                            }
+                        }
+                        logError("uploadServer failed (" + status + "), response: " + sb.toString());
+                        scanned.addAll(scansToUpload);  // reinsert data
                     }
                 } catch (SocketTimeoutException e) {
                     logError("uploadServer timed out, data reinserted for later upload.");
                     e.printStackTrace();
-                    scanned.addAll(scansToUpload);  // reinsert data
+                    scanned.addAll(scansToUpload);
                 } catch (IOException e) {
                     logError("uploadServer IOException raised, data reinserted for later upload.");
                     e.printStackTrace();

@@ -12,7 +12,7 @@ use gaen_db;
 CREATE TABLE logs (
     id INT PRIMARY KEY,
     myId CHAR(36) NOT NULL,
-    time TIMESTAMP NOT NULL,
+    time TIMESTAMP(6) NOT NULL,
     logType INT,
     otherId CHAR(36),
     rssi INT,

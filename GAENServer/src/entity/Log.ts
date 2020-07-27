@@ -1,4 +1,4 @@
-import {Entity, PrimaryGeneratedColumn, Column, BaseEntity, Index, UpdateDateColumn} from "typeorm";
+import {Entity, PrimaryGeneratedColumn, Column, BaseEntity, Index} from "typeorm";
 
 @Entity({name: "logs"})
 @Index(["myId", "time", "logType"], { unique: true })
@@ -6,21 +6,16 @@ export class Log extends BaseEntity {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column("varchar", {nullable: false, length: 31})
+    @Column("char", {nullable: false, length: 36})
     myId: string;
 
-    @UpdateDateColumn({
-        nullable: false,
-        type: "timestamp",
-        default: () => "CURRENT_TIMESTAMP(6)",
-        onUpdate: "CURRENT_TIMESTAMP(6)"
-    })
+    @Column("timestamp", {nullable: false})
     time: Date;
 
     @Column("int")
     logType?: number;
 
-    @Column("varchar", {length: 31})
+    @Column("char", {length: 36})
     otherId?: number;
 
     @Column("int")
@@ -28,4 +23,7 @@ export class Log extends BaseEntity {
 
     @Column("int")
     tx?: number;
+
+    @Column("int")
+    attenuation?: number;
 }

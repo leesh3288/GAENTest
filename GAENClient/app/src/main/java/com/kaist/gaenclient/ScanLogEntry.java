@@ -1,0 +1,90 @@
+package com.kaist.gaenclient;
+
+import android.bluetooth.le.ScanRecord;
+import android.bluetooth.le.ScanResult;
+
+import androidx.annotation.NonNull;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.Arrays;
+import java.util.UUID;
+
+public class ScanLogEntry {
+    private UUID myId;
+    private long time;
+    private int logType;
+    private UUID otherId;
+    private int rssi;
+    private int tx;
+    private int attenuation;
+
+    public static ScanLogEntry fromScanResult(ScanResult result, int SERVICE_UUID, int PROTOCOL_VER, UUID myId, byte rssiCorrection) {
+        ScanRecord scanRecord = result.getScanRecord();
+        if (scanRecord == null)
+            return null;
+
+        ///// Check payload format.
+        byte[] data = scanRecord.getBytes();
+        if (data.length < 31)
+            return null;
+
+        byte[] payloadFormat = {0x02, 0x01, 0x1A,
+                0x03, 0x03, (byte) (SERVICE_UUID & 0xff), (byte) ((SERVICE_UUID >> 8) & 0xff),
+                0x17, 0x16, (byte) (SERVICE_UUID & 0xff), (byte) ((SERVICE_UUID >> 8) & 0xff)
+        };
+
+        for (int i = 0; i < payloadFormat.length; i++)
+            if (data[i] != payloadFormat[i])
+                return null;
+
+        // versioning check
+        if (data[0x1b] != PROTOCOL_VER)
+            return null;
+        /////
+
+        ScanLogEntry entry = new ScanLogEntry();
+
+        entry.myId = myId;
+        entry.time = result.getTimestampNanos();
+        entry.logType = 0;  // TODO: field useful or not?
+        entry.otherId = Utils.UUIDConvert.asUuid(Arrays.copyOfRange(data, 0xb, 0x1b));
+        entry.rssi = result.getRssi();
+        entry.tx = data[0x1c];
+        entry.attenuation = entry.tx - (entry.rssi + rssiCorrection);
+
+        return entry;
+    }
+
+    public JSONObject getJSONObject() {
+        try {
+            JSONObject obj = new JSONObject();
+            obj.put("myId", myId.toString());
+            obj.put("time", time);
+            obj.put("logType", logType);
+            obj.put("otherId", otherId.toString());
+            obj.put("rssi", rssi);
+            obj.put("tx", tx);
+            obj.put("attenuation", attenuation);
+            return obj;
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return "ScanLogEntry{" +
+                "myId=" + myId +
+                ", time=" + time +
+                ", logType=" + logType +
+                ", otherId=" + otherId +
+                ", rssi=" + rssi +
+                ", tx=" + tx +
+                ", attenuation=" + attenuation +
+                '}';
+    }
+}

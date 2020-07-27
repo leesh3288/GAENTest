@@ -17,7 +17,6 @@ app.engine('html', ejs.renderFile);
 app.use(express.static('public'));
 
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cors());
 
 
@@ -31,6 +30,7 @@ createConnection().then(async db => {
     defaultConfig.version = 0b01000000;  // PROTOCOL_VER
     defaultConfig.SCAN_PERIOD = (5 * 60 * 1000).toString();
     defaultConfig.SCAN_DURATION = (8 * 1000).toString();
+    defaultConfig.UPLOAD_PERIOD = (60 * 60 * 1000).toString();
     defaultConfig.SERVICE_UUID = 0xfd6f;
     defaultConfig.advertiseMode = AdvertiseSettings.ADVERTISE_MODE_BALANCED;
     defaultConfig.advertiseTxPower = AdvertiseSettings.ADVERTISE_TX_POWER_LOW;

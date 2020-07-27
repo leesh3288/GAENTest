@@ -31,6 +31,7 @@ import androidx.databinding.DataBindingUtil;
 
 import com.kaist.gaenclient.databinding.ActivityMainBinding;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -38,6 +39,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -73,6 +75,7 @@ public class MainActivity extends Activity{
     private long SCAN_DURATION = Config.SCAN_DURATION;
 //    private long ADVERTISE_PERIOD = Config.ADVERTISE_PERIOD;
 //    private long ADVERTISE_DURATION = Config.ADVERTISE_DURATION;
+    private long UPLOAD_PERIOD = Config.UPLOAD_PERIOD;
     private int SERVICE_UUID = Config.SERVICE_UUID;
     private ParcelUuid SERVICE_PARCEL_UUID = Utils.UUIDConvert.convertShortToParcelUuid(SERVICE_UUID);
     private byte PROTOCOL_VER = Config.PROTOCOL_VER;
@@ -129,11 +132,11 @@ public class MainActivity extends Activity{
             Log.i(TAG, "ScanResult:");
             // These four elements are probably the complete information.
             // Reference: https://github.com/AltBeacon/android-beacon-library/blob/master/lib/src/main/java/org/altbeacon/beacon/service/scanner/CycledLeScannerForLollipop.java#L350
-            Log.i(TAG, result.getDevice() +  " / " + result.getRssi() + " / " + result.getTimestampNanos());
-            ScanRecord scanRecord = result.getScanRecord();
-            Log.i(TAG, scanRecord == null ? "(ScanRecord null)" : Arrays.toString(scanRecord.getBytes()));
-            log(result.getDevice() +  " / " + result.getRssi() + " / " + result.getTimestampNanos());
-            log(scanRecord == null ? "(ScanRecord null)" : Arrays.toString(scanRecord.getBytes()));
+            ScanLogEntry entry = ScanLogEntry.fromScanResult(result, SERVICE_UUID, PROTOCOL_VER, RPI_UUID, rssiCorrection);
+            if (entry == null)
+                return;
+            log(entry.toString());
+            scanned.add(entry);
         }
     };
 
@@ -145,6 +148,9 @@ public class MainActivity extends Activity{
     private boolean mScanning = false;
     private boolean enabledScanning = false;
     private boolean enabledAdvertising = false;
+
+    // Scan results
+    final List<ScanLogEntry> scanned = Collections.synchronizedList(new ArrayList<ScanLogEntry>());
 
     /**
      * Lifecycle
@@ -416,7 +422,7 @@ public class MainActivity extends Activity{
 
         AdvertiseSettings settings = new AdvertiseSettings.Builder()
                 .setAdvertiseMode(advertiseMode)
-                .setConnectable(true)   // NOTE: This is set to true to force flag existence
+                .setConnectable(true)
                 .setTimeout(0)
                 .setTxPowerLevel(advertiseTxPower)
                 .build();
@@ -639,9 +645,81 @@ public class MainActivity extends Activity{
      * Server related functions
      */
 
-    //TODO: Implement server & related functions
     private void uploadServer() {
-        log("Upload data.");
+        new Thread() {
+            @Override
+            public void run() {
+                List<ScanLogEntry> scansToUpload;
+                synchronized (scanned) {
+                    scansToUpload = new ArrayList<ScanLogEntry>(scanned);
+                    scanned.clear();
+                }
+                if (scansToUpload.size() == 0)
+                    return;
+
+                JSONArray jsonArray = new JSONArray();
+                for (ScanLogEntry entry: scansToUpload) {
+                    JSONObject jsonObject = entry.getJSONObject();
+                    if (jsonObject != null)
+                        jsonArray.put(jsonObject);
+                }
+                if (jsonArray.length() == 0)
+                    return;
+
+                String jsonMessage = jsonArray.toString();
+                log("uploadServer data: " + jsonMessage);
+
+                HttpURLConnection c = null;
+                try {
+                    URL u = new URL("http://" + serverUrl + "/log");
+                    c = (HttpURLConnection) u.openConnection();
+                    c.setRequestMethod("PUT");
+                    c.setRequestProperty("Content-Type", "application/json");
+                    c.setUseCaches(false);
+                    c.setDefaultUseCaches(false);
+                    c.setAllowUserInteraction(false);
+                    c.setDoOutput(true);
+                    c.setDoInput(true);
+                    c.setConnectTimeout(2000);
+                    c.setReadTimeout(2000);
+
+                    OutputStreamWriter wr = new OutputStreamWriter(c.getOutputStream());
+                    wr.write(jsonMessage);
+                    wr.flush();
+
+                    int status = c.getResponseCode();
+
+                    if (status == 200 || status == 201) {
+                        StringBuilder sb = new StringBuilder();
+                        InputStream is = c.getInputStream();
+                        try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                            String result;
+                            while ((result = br.readLine()) != null) {
+                                sb.append(result).append("\n");
+                            }
+                        }
+                        log("uploadServer success, response: " + sb.toString());
+                    } else {
+                        logError("uploadServer failed (" + status + "), response: " + c.getResponseMessage());
+                    }
+                } catch (SocketTimeoutException e) {
+                    logError("uploadServer timed out.");
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    logError("uploadServer IOException raised.");
+                    e.printStackTrace();
+                } finally {
+                    if (c != null) {
+                        try {
+                            c.disconnect();
+                        } catch (Exception e) {
+                            logError("uploadServer exception caught while disconnecting.");
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        }.start();
     }
 
     private void fetchConfig() {
@@ -657,6 +735,7 @@ public class MainActivity extends Activity{
                     JSONObject config = new JSONObject(fetched);
                     SCAN_PERIOD = config.getLong("SCAN_PERIOD");
                     SCAN_DURATION = config.getLong("SCAN_DURATION");
+                    UPLOAD_PERIOD = config.getLong("UPLOAD_PERIOD");
                     SERVICE_UUID = config.getInt("SERVICE_UUID");
                     SERVICE_PARCEL_UUID = Utils.UUIDConvert.convertShortToParcelUuid(SERVICE_UUID);
                     PROTOCOL_VER = (byte)config.getInt("version");
@@ -668,8 +747,8 @@ public class MainActivity extends Activity{
                     e.printStackTrace();
                 } finally {
                     log(String.format(Locale.getDefault(),
-                            "Current Config:\nSCAN_PERIOD: %d\nSCAN_DURATION: %d\nSERVICE_UUID: 0x%04x\nPROTOCOL_VER: 0x%02x\nadvertiseMode: %d\nadvertiseTxPower: %d\nscanMode: %d\n",
-                            SCAN_PERIOD, SCAN_DURATION, SERVICE_UUID, PROTOCOL_VER, advertiseMode, advertiseTxPower, scanMode));
+                            "Current Config:\nSCAN_PERIOD: %d\nSCAN_DURATION: %d\nUPLOAD_PERIOD: %d\nSERVICE_UUID: 0x%04x\nPROTOCOL_VER: 0x%02x\nadvertiseMode: %d\nadvertiseTxPower: %d\nscanMode: %d\n",
+                            SCAN_PERIOD, SCAN_DURATION, UPLOAD_PERIOD, SERVICE_UUID, PROTOCOL_VER, advertiseMode, advertiseTxPower, scanMode));
                     if (enabledScanning) {
                         runOnUiThread(() -> {
                             disableScan();
@@ -697,8 +776,8 @@ public class MainActivity extends Activity{
             URL u = new URL(url);
             c = (HttpURLConnection) u.openConnection();
             c.setRequestMethod("GET");
-            c.setRequestProperty("Content-length", "0");
             c.setUseCaches(false);
+            c.setDefaultUseCaches(false);
             c.setAllowUserInteraction(false);
             c.setDoOutput(false);
             c.setDoInput(true);

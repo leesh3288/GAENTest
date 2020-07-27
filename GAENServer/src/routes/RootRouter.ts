@@ -18,3 +18,8 @@ RootRouter.get('/config', asyncHandler(async (req, res, next) => {
     }
     res.status(200).send(config);
 }));
+
+RootRouter.put('/log', asyncHandler(async (req, res, next) => {
+    let db: Connection = req.app.get('db');
+    console.log(req.body);
+}));

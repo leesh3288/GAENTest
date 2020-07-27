@@ -54,6 +54,7 @@ createConnection().then(async connection => {
             config = await connection.manager.getRepository(Config).findOne();
         } catch {
             res.status(500).send("Failed to fetch config.");
+            console.log("Failed to fetch config, check DB status!");
             return;
         }
         res.status(200).send(config);

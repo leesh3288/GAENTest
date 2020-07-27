@@ -2,6 +2,23 @@ import "reflect-metadata";
 import {createConnection} from "typeorm";
 import {Log} from "./entity/Log";
 import {Config} from "./entity/Config"
+import * as express from "express";
+import * as ejs from "ejs"
+import * as bodyParser from "body-parser"
+import * as cors from "cors"
+import * as asyncHandler from "express-async-handler"
+
+
+const app = express();
+
+app.set('views', __dirname + '/views');
+app.set('view engine', 'ejs');
+app.engine('html', ejs.renderFile);
+app.use(express.static('public'));
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(cors());
 
 
 console.log("Connecting to MySQL DB...");
@@ -10,26 +27,36 @@ createConnection().then(async connection => {
 
     console.log("Initializing config...");
     
-    const config = new Config();
-    config.version = 0;
-    config.SCAN_PERIOD = '300000';
-    config.SCAN_DURATION = '8000';
-    config.SERVICE_UUID = 'aa';
-    config.advertiseMode = 0;
-    config.advertiseTxPower = 3;
-    config.scanMode = 0;
+    const defaultConfig = new Config();
+    defaultConfig.version = 0;
+    defaultConfig.SCAN_PERIOD = '300000';
+    defaultConfig.SCAN_DURATION = '8000';
+    defaultConfig.SERVICE_UUID = 'aa';
+    defaultConfig.advertiseMode = 0;
+    defaultConfig.advertiseTxPower = 3;
+    defaultConfig.scanMode = 0;
 
     await connection.manager.getRepository(Config)
         .createQueryBuilder()
         .insert()
         .orIgnore()
         .into(Config)
-        .values(config)
+        .values(defaultConfig)
         .execute();
     
     console.log("Initialized config.");
 
-    /// DEBUG ///
-    console.log(await connection.manager.getRepository(Config).find());
+    app.listen(80, () => console.log("Express server has started on port 80"))
+
+    app.get('/config', asyncHandler(async (req, res, next) => {
+        let config: Config;
+        try {
+            config = await connection.manager.getRepository(Config).findOne();
+        } catch {
+            res.status(500).send("Failed to fetch config.");
+            return;
+        }
+        res.status(200).send(config);
+    }));
 
 }).catch(error => console.log(error));

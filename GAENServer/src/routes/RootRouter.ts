@@ -58,3 +58,18 @@ RootRouter.put('/log', asyncHandler(async (req, res, next) => {
     }
     res.status(201).send("Saved " + savedLogs.length + " logs.");
 }));
+
+RootRouter.get('/logdb', asyncHandler(async (req, res, next) => {
+    let db: Connection = req.app.get('db');
+
+    let logs: Log[];
+    try {
+        logs = await db.manager.getRepository(Log).find();
+    } catch (e) {
+        res.status(400).send("Failed to fetch log database.");
+        console.log("Failed to fetch log database. Exception:");
+        console.log(e);
+        return;
+    }
+    res.status(200).send(logs);
+}));

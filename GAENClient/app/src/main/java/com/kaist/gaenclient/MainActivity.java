@@ -149,6 +149,7 @@ public class MainActivity extends Activity{
     private boolean mScanning = false;
     private boolean enabledScanning = false;
     private boolean enabledAdvertising = false;
+    private boolean enabledUploading = false;
 
     // Scan results
     final List<ScanLogEntry> scanned = Collections.synchronizedList(new ArrayList<ScanLogEntry>());
@@ -656,12 +657,14 @@ public class MainActivity extends Activity{
 
     private void enableUpload() {
         log("Enabled periodic uploading.");
+        enabledUploading = true;
         uHandler = new Handler();
         uHandler.post(this::periodicUpload);
     }
 
     private void disableUpload() {
         log("Disabled periodic uploading.");
+        enabledUploading = false;
         if (uHandler != null) {
             uHandler.removeCallbacksAndMessages(null);
             uHandler = null;
@@ -805,6 +808,12 @@ public class MainActivity extends Activity{
                         runOnUiThread(() -> {
                             disableAdvertising();
                             enableAdvertising();
+                        });
+                    }
+                    if (enabledUploading) {
+                        runOnUiThread(() -> {
+                            disableUpload();
+                            enableUpload();
                         });
                     }
                 }

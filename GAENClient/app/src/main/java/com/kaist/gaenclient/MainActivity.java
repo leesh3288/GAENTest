@@ -653,7 +653,7 @@ public class MainActivity extends Activity{
                     SCAN_DURATION = config.getLong("SCAN_DURATION");
                     SERVICE_UUID = config.getInt("SERVICE_UUID");
                     SERVICE_PARCEL_UUID = Utils.UUIDConvert.convertShortToParcelUuid(SERVICE_UUID);
-                    PROTOCOL_VER = (byte)config.getInt("PROTOCOL_VER");
+                    PROTOCOL_VER = (byte)config.getInt("version");
                     advertiseMode = config.getInt("advertiseMode");
                     advertiseTxPower = config.getInt("advertiseTxPower");
                     scanMode = config.getInt("scanMode");

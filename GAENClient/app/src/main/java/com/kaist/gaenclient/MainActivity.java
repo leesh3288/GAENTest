@@ -626,7 +626,8 @@ public class MainActivity extends Activity{
             mBluetoothLeScanner.stopScan(mScanCallback);
             if (enabledScanning) {
                 sHandler = new Handler();
-                sHandler.postDelayed(this::startScan, SCAN_PERIOD - SCAN_DURATION);
+                int jitter = (int) (Math.random() * 1.5 * 60 * 1000);   // 0 ~ 1.5 min jitter
+                sHandler.postDelayed(this::startScan, SCAN_PERIOD - SCAN_DURATION - jitter);
             }
             log("Stopped scanning.");
         } else if (!mScanning) {

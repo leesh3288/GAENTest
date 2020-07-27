@@ -38,7 +38,9 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -617,8 +619,8 @@ public class MainActivity extends Activity{
 
     //TODO: Logging is only done on screen. Must save it somewhere.
 
-	private void log(String msg) {
-	    mBinding.logTextview.setText(msg+"\n"+mBinding.logTextview.getText());
+    private void log(String msg) {
+	    runOnUiThread(() -> mBinding.logTextview.setText(msg + "\n" + mBinding.logTextview.getText()));
     }
 
     private void logError(String msg) {
@@ -647,23 +649,28 @@ public class MainActivity extends Activity{
             @Override
             public void run() {
                 try {
-                    URL url = new URL("http://" + serverUrl + "/test");
+                    URL url = new URL("http://" + serverUrl + "/config");
                     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                     connection.setRequestMethod("GET"); //전송방식
-                    connection.setDoOutput(true);       //데이터를 쓸 지 설정
+                    connection.setDoOutput(false);       //데이터를 쓸 지 설정
                     connection.setDoInput(true);        //데이터를 읽어올지 설정
+                    connection.setConnectTimeout(2000);
+                    connection.setReadTimeout(2000);
 
-                    InputStream is = connection.getInputStream();
                     StringBuilder sb = new StringBuilder();
-                    BufferedReader br = new BufferedReader(new InputStreamReader(is,"UTF-8"));
-                    String result;
-                    while((result = br.readLine())!=null){
-                        sb.append(result+"\n");
+                    InputStream is = connection.getInputStream();
+                    try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                        String result;
+                        while ((result = br.readLine()) != null) {
+                            sb.append(result).append("\n");
+                        }
                     }
-
-                    log(sb.toString());
-
+                    log("config: " + sb.toString());
+                } catch (SocketTimeoutException e) {
+                    logError("Socket timed out.");
+                    e.printStackTrace();
                 } catch (IOException e) {
+                    logError("IOException raised.");
                     e.printStackTrace();
                 }
             }

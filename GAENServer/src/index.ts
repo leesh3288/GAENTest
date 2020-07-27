@@ -27,13 +27,13 @@ createConnection().then(async db => {
     console.log("Initializing config...");
     
     const defaultConfig = new Config();
-    defaultConfig.version = 0;
-    defaultConfig.SCAN_PERIOD = '300000';
-    defaultConfig.SCAN_DURATION = '8000';
-    defaultConfig.SERVICE_UUID = 'aa';
-    defaultConfig.advertiseMode = 0;
-    defaultConfig.advertiseTxPower = 3;
-    defaultConfig.scanMode = 0;
+    defaultConfig.version = 0b01000000;
+    defaultConfig.SCAN_PERIOD = (5 * 60 * 1000).toString();
+    defaultConfig.SCAN_DURATION = (8 * 1000).toString();
+    defaultConfig.SERVICE_UUID = '\x6f\xfd';  // 0xfd6f
+    defaultConfig.advertiseMode = 1;
+    defaultConfig.advertiseTxPower = 1;
+    defaultConfig.scanMode = 1;
 
     await db.manager.getRepository(Config)
         .createQueryBuilder()

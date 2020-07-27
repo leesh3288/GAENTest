@@ -1,12 +1,11 @@
 import "reflect-metadata";
-import {createConnection} from "typeorm";
-import {Log} from "./entity/Log";
-import {Config} from "./entity/Config"
 import * as express from "express";
 import * as ejs from "ejs"
 import * as bodyParser from "body-parser"
 import * as cors from "cors"
-import * as asyncHandler from "express-async-handler"
+import {createConnection} from "typeorm";
+import {RootRouter} from "./routes/RootRouter"
+import {Config} from "./entity/Config"
 
 
 const app = express();
@@ -22,7 +21,7 @@ app.use(cors());
 
 
 console.log("Connecting to MySQL DB...");
-createConnection().then(async connection => {
+createConnection().then(async db => {
     console.log("Connected to MySQL DB.");
 
     console.log("Initializing config...");
@@ -36,7 +35,7 @@ createConnection().then(async connection => {
     defaultConfig.advertiseTxPower = 3;
     defaultConfig.scanMode = 0;
 
-    await connection.manager.getRepository(Config)
+    await db.manager.getRepository(Config)
         .createQueryBuilder()
         .insert()
         .orIgnore()
@@ -48,16 +47,8 @@ createConnection().then(async connection => {
 
     app.listen(80, () => console.log("Express server has started on port 80"))
 
-    app.get('/config', asyncHandler(async (req, res, next) => {
-        let config: Config;
-        try {
-            config = await connection.manager.getRepository(Config).findOne();
-        } catch {
-            res.status(500).send("Failed to fetch config.");
-            console.log("Failed to fetch config, check DB status!");
-            return;
-        }
-        res.status(200).send(config);
-    }));
+    app.set('db', db);
+
+    app.use('/', RootRouter);
 
 }).catch(error => console.log(error));

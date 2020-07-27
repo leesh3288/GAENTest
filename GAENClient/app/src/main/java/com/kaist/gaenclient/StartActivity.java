@@ -24,7 +24,7 @@ public class StartActivity extends Activity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(StartActivity.this, MainActivity.class);
-                intent.putExtra("deviceId",mBinding.editTextDeviceId.getText().toString());
+                intent.putExtra("deviceId", mBinding.editTextDeviceId.getText().toString());
                 startActivity(intent);
             }
         });

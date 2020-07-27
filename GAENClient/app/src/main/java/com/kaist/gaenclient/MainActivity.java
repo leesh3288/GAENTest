@@ -49,6 +49,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 /**
  *
@@ -79,6 +80,7 @@ public class MainActivity extends Activity{
     private int advertiseTxPower = Config.advertiseTxPower;
     private int scanMode = Config.scanMode;
     private String serverUrl = Config.serverUrl;
+    private final UUID NAMESPACE_GAEN = Config.NAMESPACE_GAEN;
 
     // Device info
     private String DEVICE_MODEL = Build.MODEL.toLowerCase();
@@ -88,6 +90,9 @@ public class MainActivity extends Activity{
     // Default values are set to maximize calculated attenuation.
     private byte txPower = 127;
     private byte rssiCorrection = -128;
+
+    // This will immediately be replaced with UUID v5 of supplied deviceId
+    private UUID RPI_UUID = NAMESPACE_GAEN;
 
     // Callbacks
     private AdvertiseCallback mAdvertiseCallback = new AdvertiseCallback() {
@@ -266,7 +271,8 @@ public class MainActivity extends Activity{
 
         // Set device id
         deviceId = this.getIntent().getStringExtra("deviceId");
-        mBinding.deviceId.setText("Device ID: "+deviceId);
+        RPI_UUID = Utils.HashUuidCreator.getSha1Uuid(NAMESPACE_GAEN, deviceId);
+        mBinding.deviceId.setText("Device ID: " + deviceId + "\nRPI_UUID: " + RPI_UUID.toString());
 
         // Load calibration data
         loadCalibrationData();
@@ -416,16 +422,9 @@ public class MainActivity extends Activity{
                 .build();
 
         // Service data payload, as in GAEN protocol
-        byte[] RPI = new byte[16], AEM = new byte[4];
+        byte[] RPI = Utils.UUIDConvert.asBytes(RPI_UUID);
+        byte[] AEM = {PROTOCOL_VER, txPower, 0, 0};
         byte[] advertisingBytes = new byte[20];
-
-        // TODO: Customize RPI using deviceId
-        // TEST: RPI as "01020304-0506-0708-090a-0b0c0d0e0f10"
-        for (int i = 0; i < RPI.length; i++)
-            RPI[i] = (byte)(i + 1);
-        AEM[0] = PROTOCOL_VER;
-        AEM[1] = txPower;
-        AEM[2] = AEM[3] = 0;
 
         System.arraycopy(RPI, 0, advertisingBytes, 0, RPI.length);
         System.arraycopy(AEM, 0, advertisingBytes, RPI.length, AEM.length);

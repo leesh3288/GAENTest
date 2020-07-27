@@ -69,6 +69,7 @@ public class MainActivity extends Activity{
     private ActivityMainBinding mBinding;
     private Handler sHandler;
 //    private Handler aHandler;
+    private Handler uHandler;
 
     // Config variables
     private long SCAN_PERIOD = Config.SCAN_PERIOD;
@@ -253,6 +254,13 @@ public class MainActivity extends Activity{
                 } else {
                     disableScan();
                 }}});
+        mBinding.uploadSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) { if(isChecked) {
+                    enableUpload();
+                } else {
+                    disableUpload();
+                }}});
         mBinding.fetchConfigButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) { fetchConfig(); }
@@ -268,10 +276,11 @@ public class MainActivity extends Activity{
             public void onClick(View v) { mBinding.logTextview.setText("");
             }
         });
-        mBinding.testButton.setOnClickListener(new View.OnClickListener() {
+        mBinding.clearScanButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                test();
+                scanned.clear();
+                log("Cleared scan log pending for upload.");
             }
         });
 
@@ -645,10 +654,32 @@ public class MainActivity extends Activity{
      * Server related functions
      */
 
+    private void enableUpload() {
+        log("Enabled periodic uploading.");
+        uHandler = new Handler();
+        uHandler.post(this::periodicUpload);
+    }
+
+    private void disableUpload() {
+        log("Disabled periodic uploading.");
+        if (uHandler != null) {
+            uHandler.removeCallbacksAndMessages(null);
+            uHandler = null;
+        }
+    }
+
+    private void periodicUpload() {
+        uploadServer();
+        uHandler = new Handler();
+        uHandler.postDelayed(this::periodicUpload, UPLOAD_PERIOD);
+    }
+
     private void uploadServer() {
         new Thread() {
             @Override
             public void run() {
+                log("uploadServer called.");
+
                 List<ScanLogEntry> scansToUpload;
                 synchronized (scanned) {
                     scansToUpload = new ArrayList<ScanLogEntry>(scanned);
@@ -829,12 +860,5 @@ public class MainActivity extends Activity{
             }
         }
         return null;
-    }
-
-    /**
-     * Test functions
-     */
-    private void test() {
-        log("Test.");
     }
 }

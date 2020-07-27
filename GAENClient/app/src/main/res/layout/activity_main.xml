@@ -29,19 +29,36 @@
 
             <Switch
                 android:id="@+id/scan_switch"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:text="Scan" />
+                android:switchMinWidth="0dp"
+                android:switchPadding="2dp"
+                android:text="Scan"
+                android:thumbTextPadding="5dp" />
 
             <Switch
                 android:id="@+id/advertise_switch"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:text="Adv." />
+                android:switchMinWidth="0dp"
+                android:switchPadding="2dp"
+                android:text="Adv."
+                android:thumbTextPadding="5dp" />
+
+            <Switch
+                android:id="@+id/upload_switch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:switchMinWidth="0dp"
+                android:switchPadding="2dp"
+                android:text="Upload"
+                android:thumbTextPadding="5dp" />
 
         </LinearLayout>
 
@@ -79,11 +96,11 @@
                 android:text="Clear Log" />
 
             <Button
-                android:id="@+id/testButton"
+                android:id="@+id/clear_scan_button"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Test"/>
+                android:text="Clear Scan Log" />
         </LinearLayout>
 
         <ScrollView

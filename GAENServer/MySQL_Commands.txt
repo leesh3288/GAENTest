@@ -10,13 +10,14 @@ GRANT ALL PRIVILEGES ON gaen_db.* TO 'GAEN'@'localhost';
 // Create tables
 use gaen_db;
 CREATE TABLE logs (
+    id INT PRIMARY KEY,
     myId VARCHAR(31) NOT NULL,
     time TIMESTAMP NOT NULL,
     logType INT,
     otherId VARCHAR(31),
     rssi INT,
     tx INT,
-    PRIMARY KEY (myId, time, logType)
+    UNIQUE KEY (myId, time, logType)
 );
 CREATE TABLE config (
     version INT NOT NULL PRIMARY KEY,

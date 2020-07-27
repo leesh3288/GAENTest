@@ -1,43 +1,43 @@
-import {Entity, PrimaryGeneratedColumn, Column, BaseEntity, Index, UpdateDateColumn} from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, Index } from "typeorm";
+import { IsUUID, IsDate, IsInt, IsOptional } from "class-validator";
+import { ValidationEntity } from "./ValidationEntity";
 
 @Entity({name: "logs"})
 @Index(["myId", "time", "logType"], { unique: true })
-export class Log extends BaseEntity {
+export class Log extends ValidationEntity {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column("varchar", {nullable: false, length: 31})
+    @IsUUID()
+    @Column("char", {nullable: false, length: 36})
     myId: string;
 
-    @UpdateDateColumn({
-        nullable: false,
-        type: "timestamp",
-        default: () => "CURRENT_TIMESTAMP(6)",
-        onUpdate: "CURRENT_TIMESTAMP(6)"
-    })
+    @IsDate()
+    @Column("timestamp", {nullable: false, precision: 6})
     time: Date;
 
+    @IsOptional()
+    @IsInt()
     @Column("int")
     logType?: number;
 
-    @Column("varchar", {length: 31})
-    otherId?: number;
+    @IsOptional()
+    @IsUUID()
+    @Column("char", {length: 36})
+    otherId?: string;
 
+    @IsOptional()
+    @IsInt()
     @Column("int")
     rssi?: number;
 
+    @IsOptional()
+    @IsInt()
     @Column("int")
     tx?: number;
-}
 
-/*
-CREATE TABLE logs (
-    myId VARCHAR(31) NOT NULL,
-    time TIMESTAMP NOT NULL,
-    logType INT,
-    otherId VARCHAR(31),
-    rssi INT,
-    tx INT,
-    PRIMARY KEY (myId, time, logType)
-);
-*/
+    @IsOptional()
+    @IsInt()
+    @Column("int")
+    attenuation?: number;
+}

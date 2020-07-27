@@ -1,12 +1,12 @@
 import "reflect-metadata";
-import {createConnection} from "typeorm";
-import {Log} from "./entity/Log";
-import {Config} from "./entity/Config"
 import * as express from "express";
 import * as ejs from "ejs"
 import * as bodyParser from "body-parser"
 import * as cors from "cors"
-import * as asyncHandler from "express-async-handler"
+import {createConnection} from "typeorm";
+import {RootRouter} from "./routes/RootRouter"
+import {Config} from "./entity/Config"
+import {AdvertiseSettings, ScanSettings} from "./type/BluetoothLE"
 
 
 const app = express();
@@ -17,26 +17,26 @@ app.engine('html', ejs.renderFile);
 app.use(express.static('public'));
 
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cors());
 
 
 console.log("Connecting to MySQL DB...");
-createConnection().then(async connection => {
+createConnection().then(async db => {
     console.log("Connected to MySQL DB.");
 
     console.log("Initializing config...");
     
     const defaultConfig = new Config();
-    defaultConfig.version = 0;
-    defaultConfig.SCAN_PERIOD = '300000';
-    defaultConfig.SCAN_DURATION = '8000';
-    defaultConfig.SERVICE_UUID = 'aa';
-    defaultConfig.advertiseMode = 0;
-    defaultConfig.advertiseTxPower = 3;
-    defaultConfig.scanMode = 0;
+    defaultConfig.version = 0b01000000;  // PROTOCOL_VER
+    defaultConfig.SCAN_PERIOD = (5 * 60 * 1000).toString();
+    defaultConfig.SCAN_DURATION = (8 * 1000).toString();
+    defaultConfig.UPLOAD_PERIOD = (60 * 60 * 1000).toString();
+    defaultConfig.SERVICE_UUID = 0xfd6f;
+    defaultConfig.advertiseMode = AdvertiseSettings.ADVERTISE_MODE_BALANCED;
+    defaultConfig.advertiseTxPower = AdvertiseSettings.ADVERTISE_TX_POWER_LOW;
+    defaultConfig.scanMode = ScanSettings.SCAN_MODE_BALANCED;
 
-    await connection.manager.getRepository(Config)
+    await db.manager.getRepository(Config)
         .createQueryBuilder()
         .insert()
         .orIgnore()
@@ -48,16 +48,8 @@ createConnection().then(async connection => {
 
     app.listen(80, () => console.log("Express server has started on port 80"))
 
-    app.get('/config', asyncHandler(async (req, res, next) => {
-        let config: Config;
-        try {
-            config = await connection.manager.getRepository(Config).findOne();
-        } catch {
-            res.status(500).send("Failed to fetch config.");
-            console.log("Failed to fetch config, check DB status!");
-            return;
-        }
-        res.status(200).send(config);
-    }));
+    app.set('db', db);
+
+    app.use('/', RootRouter);
 
 }).catch(error => console.log(error));

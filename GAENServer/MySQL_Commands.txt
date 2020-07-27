@@ -11,24 +11,26 @@ GRANT ALL PRIVILEGES ON gaen_db.* TO 'GAEN'@'localhost';
 use gaen_db;
 CREATE TABLE logs (
     id INT PRIMARY KEY,
-    myId VARCHAR(31) NOT NULL,
-    time TIMESTAMP NOT NULL,
+    myId CHAR(36) NOT NULL,
+    time TIMESTAMP(6) NOT NULL,
     logType INT,
-    otherId VARCHAR(31),
+    otherId CHAR(36),
     rssi INT,
     tx INT,
+    attenuation INT,
     UNIQUE KEY (myId, time, logType)
 );
 CREATE TABLE config (
     version INT NOT NULL PRIMARY KEY,
     SCAN_PERIOD BIGINT NOT NULL,
     SCAN_DURATION BIGINT NOT NULL,
-    SERVICE_UUID VARCHAR(31) NOT NULL,
+    UPLOAD_PERIOD BIGINT NOT NULL,
+    SERVICE_UUID INT NOT NULL,
     advertiseMode INT NOT NULL,
     advertiseTxPower INT NOT NULL,
     scanMode INT NOT NULL
 );
 
 // Initialize config
-INSERT IGNORE INTO config (version, SCAN_PERIOD, SCAN_DURATION, SERVICE_UUID, advertiseMode, advertiseTxPower, scanMode) 
-VALUES (0, 300000, 8000, 'aa', 0, 3, 0);
+INSERT IGNORE INTO config (version, SCAN_PERIOD, SCAN_DURATION, UPLOAD_PERIOD, SERVICE_UUID, advertiseMode, advertiseTxPower, scanMode) 
+VALUES (0b01000000, 300000, 8000, 3600000, 0xfd6f, 1, 1, 1);

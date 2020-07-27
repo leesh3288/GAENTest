@@ -4,12 +4,16 @@ import android.bluetooth.le.AdvertiseSettings;
 import android.bluetooth.le.ScanSettings;
 import android.os.ParcelUuid;
 
+import java.util.UUID;
+
 public class Config {
     public static long SCAN_PERIOD = 5*1000; //5 * 60 * 1000;  // 5 minutes
     public static long SCAN_DURATION = 3*1000; // 8 * 1000;     // 8 seconds
 //    public static long ADVERTISE_PERIOD = 5*1000; //5 * 60 * 1000;  // 5 minutes
 //    public static long ADVERTISE_DURATION = 3*1000; // 8 * 1000;     // 8 seconds
-    public static ParcelUuid SERVICE_UUID = Utils.parseUuidFrom(new byte[] { (byte)0x6f, (byte)0xfd });
+    public static long UPLOAD_PERIOD = 60 * 60 * 1000;  // 1 hour
+
+    public static int SERVICE_UUID = 0xfd6f;
 
     public static byte PROTOCOL_VER = 0b01000000;  // Major 01, Minor 00, reserved 0000
 
@@ -24,6 +28,8 @@ public class Config {
     public static int advertiseTxPower = AdvertiseSettings.ADVERTISE_TX_POWER_LOW;
     // Can be SCAN_MODE_BALANCED/LOW_LATENCY/LOW_POWER/OPPORTUNISTIC
     public static int scanMode = ScanSettings.SCAN_MODE_BALANCED;
+
+    public static final UUID NAMESPACE_GAEN = Utils.HashUuidCreator.getSha1Uuid("NAMESPACE_GAEN");
 
     /* Precise control over advertisement (interval, address anonymity) works only on
      * API level 26 or above, and thus is omitted.

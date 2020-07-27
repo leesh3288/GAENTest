@@ -31,19 +31,27 @@ import androidx.databinding.DataBindingUtil;
 
 import com.kaist.gaenclient.databinding.ActivityMainBinding;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 /**
  *
@@ -67,12 +75,15 @@ public class MainActivity extends Activity{
     private long SCAN_DURATION = Config.SCAN_DURATION;
 //    private long ADVERTISE_PERIOD = Config.ADVERTISE_PERIOD;
 //    private long ADVERTISE_DURATION = Config.ADVERTISE_DURATION;
-    private ParcelUuid SERVICE_UUID = Config.SERVICE_UUID;
+    private long UPLOAD_PERIOD = Config.UPLOAD_PERIOD;
+    private int SERVICE_UUID = Config.SERVICE_UUID;
+    private ParcelUuid SERVICE_PARCEL_UUID = Utils.UUIDConvert.convertShortToParcelUuid(SERVICE_UUID);
     private byte PROTOCOL_VER = Config.PROTOCOL_VER;
     private int advertiseMode = Config.advertiseMode;
     private int advertiseTxPower = Config.advertiseTxPower;
     private int scanMode = Config.scanMode;
     private String serverUrl = Config.serverUrl;
+    private final UUID NAMESPACE_GAEN = Config.NAMESPACE_GAEN;
 
     // Device info
     private String DEVICE_MODEL = Build.MODEL.toLowerCase();
@@ -82,6 +93,9 @@ public class MainActivity extends Activity{
     // Default values are set to maximize calculated attenuation.
     private byte txPower = 127;
     private byte rssiCorrection = -128;
+
+    // This will immediately be replaced with UUID v5 of supplied deviceId
+    private UUID RPI_UUID = NAMESPACE_GAEN;
 
     // Callbacks
     private AdvertiseCallback mAdvertiseCallback = new AdvertiseCallback() {
@@ -118,11 +132,11 @@ public class MainActivity extends Activity{
             Log.i(TAG, "ScanResult:");
             // These four elements are probably the complete information.
             // Reference: https://github.com/AltBeacon/android-beacon-library/blob/master/lib/src/main/java/org/altbeacon/beacon/service/scanner/CycledLeScannerForLollipop.java#L350
-            Log.i(TAG, result.getDevice() +  " / " + result.getRssi() + " / " + result.getTimestampNanos());
-            ScanRecord scanRecord = result.getScanRecord();
-            Log.i(TAG, scanRecord == null ? "(ScanRecord null)" : Arrays.toString(scanRecord.getBytes()));
-            log(result.getDevice() +  " / " + result.getRssi() + " / " + result.getTimestampNanos());
-            log(scanRecord == null ? "(ScanRecord null)" : Arrays.toString(scanRecord.getBytes()));
+            ScanLogEntry entry = ScanLogEntry.fromScanResult(result, SERVICE_UUID, PROTOCOL_VER, RPI_UUID, rssiCorrection);
+            if (entry == null)
+                return;
+            log(entry.toString());
+            scanned.add(entry);
         }
     };
 
@@ -133,6 +147,10 @@ public class MainActivity extends Activity{
     private BluetoothLeScanner mBluetoothLeScanner;
     private boolean mScanning = false;
     private boolean enabledScanning = false;
+    private boolean enabledAdvertising = false;
+
+    // Scan results
+    final List<ScanLogEntry> scanned = Collections.synchronizedList(new ArrayList<ScanLogEntry>());
 
     /**
      * Lifecycle
@@ -259,7 +277,8 @@ public class MainActivity extends Activity{
 
         // Set device id
         deviceId = this.getIntent().getStringExtra("deviceId");
-        mBinding.deviceId.setText("Device ID: "+deviceId);
+        RPI_UUID = Utils.HashUuidCreator.getSha1Uuid(NAMESPACE_GAEN, deviceId);
+        mBinding.deviceId.setText("Device ID: " + deviceId + "\nRPI_UUID: " + RPI_UUID.toString());
 
         // Load calibration data
         loadCalibrationData();
@@ -399,32 +418,26 @@ public class MainActivity extends Activity{
         if (mBluetoothLeAdvertiser == null) {
             return;
         }
+        enabledAdvertising = true;
 
         AdvertiseSettings settings = new AdvertiseSettings.Builder()
                 .setAdvertiseMode(advertiseMode)
-                .setConnectable(true)   // NOTE: This is set to true because we want connection (thus adds a flag)
+                .setConnectable(true)
                 .setTimeout(0)
                 .setTxPowerLevel(advertiseTxPower)
                 .build();
 
         // Service data payload, as in GAEN protocol
-        byte[] RPI = new byte[16], AEM = new byte[4];
+        byte[] RPI = Utils.UUIDConvert.asBytes(RPI_UUID);
+        byte[] AEM = {PROTOCOL_VER, txPower, 0, 0};
         byte[] advertisingBytes = new byte[20];
-
-        // TODO: Customize RPI using deviceId
-        // TEST: RPI as "01020304-0506-0708-090a-0b0c0d0e0f10"
-        for (int i = 0; i < RPI.length; i++)
-            RPI[i] = (byte)(i + 1);
-        AEM[0] = PROTOCOL_VER;
-        AEM[1] = txPower;
-        AEM[2] = AEM[3] = 0;
 
         System.arraycopy(RPI, 0, advertisingBytes, 0, RPI.length);
         System.arraycopy(AEM, 0, advertisingBytes, RPI.length, AEM.length);
 
         AdvertiseData data = new AdvertiseData.Builder()
-                .addServiceData(SERVICE_UUID, advertisingBytes)
-                .addServiceUuid(SERVICE_UUID)
+                .addServiceData(SERVICE_PARCEL_UUID, advertisingBytes)
+                .addServiceUuid(SERVICE_PARCEL_UUID)
                 .setIncludeTxPowerLevel(false)
                 .setIncludeDeviceName(false)
                 .build();
@@ -439,6 +452,7 @@ public class MainActivity extends Activity{
 
     private void stopAdvertising() {
         if (mBluetoothLeAdvertiser != null) {
+            enabledAdvertising = false;
             mBluetoothLeAdvertiser.stopAdvertising(mAdvertiseCallback);
             log("Stopped advertising.");
         }
@@ -541,7 +555,6 @@ public class MainActivity extends Activity{
             logError("Permissions & bluetooth requirement not met");
         } else {
             log("Enabled scanning.");
-            //TODO: Turn scanning on/off periodically (always on for now)
             startScan();
         }
     }
@@ -572,7 +585,7 @@ public class MainActivity extends Activity{
         // For example, when looking for a brand of device that contains a char sequence in the UUID
 
         ScanFilter scanFilter = new ScanFilter.Builder()
-                .setServiceUuid(SERVICE_UUID)
+                .setServiceUuid(SERVICE_PARCEL_UUID)
                 .build();
         List<ScanFilter> filters = new ArrayList<>();
         filters.add(scanFilter);
@@ -595,6 +608,9 @@ public class MainActivity extends Activity{
 
     // Stop scanning
     private void stopScan() {
+        if (sHandler != null) {
+            sHandler.removeCallbacksAndMessages(null);
+        }
         sHandler = null;
         if (mScanning && mBluetoothAdapter != null && mBluetoothAdapter.isEnabled() && mBluetoothLeScanner != null) {
             mBluetoothLeScanner.stopScan(mScanCallback);
@@ -617,8 +633,8 @@ public class MainActivity extends Activity{
 
     //TODO: Logging is only done on screen. Must save it somewhere.
 
-	private void log(String msg) {
-	    mBinding.logTextview.setText(msg+"\n"+mBinding.logTextview.getText());
+    private void log(String msg) {
+	    runOnUiThread(() -> mBinding.logTextview.setText(msg + "\n" + mBinding.logTextview.getText()));
     }
 
     private void logError(String msg) {
@@ -629,44 +645,196 @@ public class MainActivity extends Activity{
      * Server related functions
      */
 
-    //TODO: Implement server & related functions
     private void uploadServer() {
-        log("Upload data.");
+        new Thread() {
+            @Override
+            public void run() {
+                List<ScanLogEntry> scansToUpload;
+                synchronized (scanned) {
+                    scansToUpload = new ArrayList<ScanLogEntry>(scanned);
+                    scanned.clear();
+                }
+                if (scansToUpload.size() == 0) {
+                    log("No scan results to upload.");
+                    return;
+                }
+
+                JSONArray jsonArray = new JSONArray();
+                for (ScanLogEntry entry: scansToUpload) {
+                    JSONObject jsonObject = entry.getJSONObject();
+                    if (jsonObject != null)
+                        jsonArray.put(jsonObject);
+                }
+                if (jsonArray.length() == 0) {
+                    log("No valid scan results to upload.");
+                    return;
+                }
+
+                String jsonMessage = jsonArray.toString();
+                log("uploadServer data: " + jsonMessage);
+
+                HttpURLConnection c = null;
+                try {
+                    URL u = new URL("http://" + serverUrl + "/log");
+                    c = (HttpURLConnection) u.openConnection();
+                    c.setRequestMethod("PUT");
+                    c.setRequestProperty("Content-Type", "application/json");
+                    c.setUseCaches(false);
+                    c.setDefaultUseCaches(false);
+                    c.setAllowUserInteraction(false);
+                    c.setDoOutput(true);
+                    c.setDoInput(true);
+                    c.setConnectTimeout(2000);
+                    c.setReadTimeout(2000);
+
+                    OutputStreamWriter wr = new OutputStreamWriter(c.getOutputStream());
+                    wr.write(jsonMessage);
+                    wr.flush();
+
+                    int status = c.getResponseCode();
+
+                    if (status == 200 || status == 201) {
+                        StringBuilder sb = new StringBuilder();
+                        InputStream is = c.getInputStream();
+                        try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                            String result;
+                            while ((result = br.readLine()) != null) {
+                                sb.append(result).append("\n");
+                            }
+                        }
+                        log("uploadServer success, response: " + sb.toString());
+                    } else {
+                        StringBuilder sb = new StringBuilder();
+                        InputStream es = c.getErrorStream();
+                        try (BufferedReader br = new BufferedReader(new InputStreamReader(es, StandardCharsets.UTF_8))) {
+                            String result;
+                            while ((result = br.readLine()) != null) {
+                                sb.append(result).append("\n");
+                            }
+                        }
+                        logError("uploadServer failed (" + status + "), response: " + sb.toString());
+                        scanned.addAll(scansToUpload);  // reinsert data
+                    }
+                } catch (SocketTimeoutException e) {
+                    logError("uploadServer timed out, data reinserted for later upload.");
+                    e.printStackTrace();
+                    scanned.addAll(scansToUpload);
+                } catch (IOException e) {
+                    logError("uploadServer IOException raised, data reinserted for later upload.");
+                    e.printStackTrace();
+                    scanned.addAll(scansToUpload);
+                } finally {
+                    if (c != null) {
+                        try {
+                            c.disconnect();
+                        } catch (Exception e) {
+                            logError("uploadServer exception caught while disconnecting.");
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        }.start();
     }
 
-    //TODO: Implement server & related functions
     private void fetchConfig() {
-        log("Fetch config.");
+        new Thread(){
+            @Override
+            public void run() {
+                try {
+                    String fetched = getURL("http://" + serverUrl + "/config");
+                    if (fetched == null) {
+                        logError("Configuration fetch failed.");
+                        return;
+                    }
+                    JSONObject config = new JSONObject(fetched);
+                    SCAN_PERIOD = config.getLong("SCAN_PERIOD");
+                    SCAN_DURATION = config.getLong("SCAN_DURATION");
+                    UPLOAD_PERIOD = config.getLong("UPLOAD_PERIOD");
+                    SERVICE_UUID = config.getInt("SERVICE_UUID");
+                    SERVICE_PARCEL_UUID = Utils.UUIDConvert.convertShortToParcelUuid(SERVICE_UUID);
+                    PROTOCOL_VER = (byte)config.getInt("version");
+                    advertiseMode = config.getInt("advertiseMode");
+                    advertiseTxPower = config.getInt("advertiseTxPower");
+                    scanMode = config.getInt("scanMode");
+                } catch (JSONException e) {
+                    logError("JSONException while parsing config.");
+                    e.printStackTrace();
+                } finally {
+                    log(String.format(Locale.getDefault(),
+                            "Current Config:\nSCAN_PERIOD: %d\nSCAN_DURATION: %d\nUPLOAD_PERIOD: %d\nSERVICE_UUID: 0x%04x\nPROTOCOL_VER: 0x%02x\nadvertiseMode: %d\nadvertiseTxPower: %d\nscanMode: %d\n",
+                            SCAN_PERIOD, SCAN_DURATION, UPLOAD_PERIOD, SERVICE_UUID, PROTOCOL_VER, advertiseMode, advertiseTxPower, scanMode));
+                    if (enabledScanning) {
+                        runOnUiThread(() -> {
+                            disableScan();
+                            enableScan();
+                        });
+                    }
+                    if (enabledAdvertising) {
+                        runOnUiThread(() -> {
+                            disableAdvertising();
+                            enableAdvertising();
+                        });
+                    }
+                }
+            }
+        }.start();
+    }
+
+    private String getURL(String url) {
+        return getURL(url, 2000);
+    }
+
+    private String getURL(String url, int timeout) {
+        HttpURLConnection c = null;
+        try {
+            URL u = new URL(url);
+            c = (HttpURLConnection) u.openConnection();
+            c.setRequestMethod("GET");
+            c.setUseCaches(false);
+            c.setDefaultUseCaches(false);
+            c.setAllowUserInteraction(false);
+            c.setDoOutput(false);
+            c.setDoInput(true);
+            c.setConnectTimeout(timeout);
+            c.setReadTimeout(timeout);
+            c.connect();
+            int status = c.getResponseCode();
+
+            if (status == 200 || status == 201) {
+                StringBuilder sb = new StringBuilder();
+                InputStream is = c.getInputStream();
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                    String result;
+                    while ((result = br.readLine()) != null) {
+                        sb.append(result).append("\n");
+                    }
+                }
+                return sb.toString();
+            }
+        } catch (SocketTimeoutException e) {
+            logError("getURL timed out.");
+            e.printStackTrace();
+        } catch (IOException e) {
+            logError("getURL IOException raised.");
+            e.printStackTrace();
+        } finally {
+            if (c != null) {
+                try {
+                    c.disconnect();
+                } catch (Exception e) {
+                   logError("getURL exception caught while disconnecting.");
+                   e.printStackTrace();
+                }
+            }
+        }
+        return null;
     }
 
     /**
      * Test functions
      */
     private void test() {
-        new Thread(){
-            @Override
-            public void run() {
-                try {
-                    URL url = new URL("http://" + serverUrl + "/test");
-                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                    connection.setRequestMethod("GET"); //전송방식
-                    connection.setDoOutput(true);       //데이터를 쓸 지 설정
-                    connection.setDoInput(true);        //데이터를 읽어올지 설정
-
-                    InputStream is = connection.getInputStream();
-                    StringBuilder sb = new StringBuilder();
-                    BufferedReader br = new BufferedReader(new InputStreamReader(is,"UTF-8"));
-                    String result;
-                    while((result = br.readLine())!=null){
-                        sb.append(result+"\n");
-                    }
-
-                    log(sb.toString());
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }.start();
+        log("Test.");
     }
 }

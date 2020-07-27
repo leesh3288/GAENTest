@@ -29,15 +29,3 @@ export class Log extends BaseEntity {
     @Column("int")
     tx?: number;
 }
-
-/*
-CREATE TABLE logs (
-    myId VARCHAR(31) NOT NULL,
-    time TIMESTAMP NOT NULL,
-    logType INT,
-    otherId VARCHAR(31),
-    rssi INT,
-    tx INT,
-    PRIMARY KEY (myId, time, logType)
-);
-*/

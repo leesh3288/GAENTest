@@ -23,7 +23,7 @@ CREATE TABLE config (
     version INT NOT NULL PRIMARY KEY,
     SCAN_PERIOD BIGINT NOT NULL,
     SCAN_DURATION BIGINT NOT NULL,
-    SERVICE_UUID VARCHAR(31) NOT NULL,
+    SERVICE_UUID INT NOT NULL,
     advertiseMode INT NOT NULL,
     advertiseTxPower INT NOT NULL,
     scanMode INT NOT NULL
@@ -31,4 +31,4 @@ CREATE TABLE config (
 
 // Initialize config
 INSERT IGNORE INTO config (version, SCAN_PERIOD, SCAN_DURATION, SERVICE_UUID, advertiseMode, advertiseTxPower, scanMode) 
-VALUES (0, 300000, 8000, 'aa', 0, 3, 0);
+VALUES (0b01000000, 300000, 8000, 0xfd6f, 1, 1, 1);

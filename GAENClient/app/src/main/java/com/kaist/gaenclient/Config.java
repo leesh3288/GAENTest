@@ -9,7 +9,7 @@ public class Config {
     public static long SCAN_DURATION = 3*1000; // 8 * 1000;     // 8 seconds
 //    public static long ADVERTISE_PERIOD = 5*1000; //5 * 60 * 1000;  // 5 minutes
 //    public static long ADVERTISE_DURATION = 3*1000; // 8 * 1000;     // 8 seconds
-    public static ParcelUuid SERVICE_UUID = Utils.parseUuidFrom(new byte[] { (byte)0x6f, (byte)0xfd });
+    public static int SERVICE_UUID = 0xfd6f;
 
     public static byte PROTOCOL_VER = 0b01000000;  // Major 01, Minor 00, reserved 0000
 

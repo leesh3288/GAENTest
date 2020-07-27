@@ -11,8 +11,8 @@ export class Config extends BaseEntity {
     @Column("bigint", {nullable: false})
     SCAN_DURATION: string;
 
-    @Column("varchar", {nullable: false, length: 31})
-    SERVICE_UUID: string;
+    @Column("int", {nullable: false})
+    SERVICE_UUID: number;
 
     @Column("int", {nullable: false})
     advertiseMode: number;
@@ -23,15 +23,3 @@ export class Config extends BaseEntity {
     @Column("int", {nullable: false})
     scanMode: number;
 }
-
-/*
-CREATE TABLE config (
-    version INT NOT NULL PRIMARY KEY,
-    SCAN_PERIOD BIGINT NOT NULL,
-    SCAN_DURATION BIGINT NOT NULL,
-    SERVICE_UUID VARCHAR(31) NOT NULL,
-    advertiseMode INT NOT NULL,
-    advertiseTxPower INT NOT NULL,
-    scanMode INT NOT NULL
-);
-*/

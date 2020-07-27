@@ -410,7 +410,7 @@ public class MainActivity extends Activity{
 
         AdvertiseSettings settings = new AdvertiseSettings.Builder()
                 .setAdvertiseMode(advertiseMode)
-                .setConnectable(true)   // NOTE: This is set to true because we want connection (thus adds a flag)
+                .setConnectable(true)   // NOTE: This is set to true to force flag existence
                 .setTimeout(0)
                 .setTxPowerLevel(advertiseTxPower)
                 .build();

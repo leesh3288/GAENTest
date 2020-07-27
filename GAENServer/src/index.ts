@@ -6,6 +6,7 @@ import * as cors from "cors"
 import {createConnection} from "typeorm";
 import {RootRouter} from "./routes/RootRouter"
 import {Config} from "./entity/Config"
+import {AdvertiseSettings, ScanSettings} from "./type/BluetoothLE"
 
 
 const app = express();
@@ -27,13 +28,13 @@ createConnection().then(async db => {
     console.log("Initializing config...");
     
     const defaultConfig = new Config();
-    defaultConfig.version = 0b01000000;
+    defaultConfig.version = 0b01000000;  // PROTOCOL_VER
     defaultConfig.SCAN_PERIOD = (5 * 60 * 1000).toString();
     defaultConfig.SCAN_DURATION = (8 * 1000).toString();
     defaultConfig.SERVICE_UUID = 0xfd6f;
-    defaultConfig.advertiseMode = 1;
-    defaultConfig.advertiseTxPower = 1;
-    defaultConfig.scanMode = 1;
+    defaultConfig.advertiseMode = AdvertiseSettings.ADVERTISE_MODE_BALANCED;
+    defaultConfig.advertiseTxPower = AdvertiseSettings.ADVERTISE_TX_POWER_LOW;
+    defaultConfig.scanMode = ScanSettings.SCAN_MODE_BALANCED;
 
     await db.manager.getRepository(Config)
         .createQueryBuilder()

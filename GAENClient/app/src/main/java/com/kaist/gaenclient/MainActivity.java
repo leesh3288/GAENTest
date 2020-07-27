@@ -550,7 +550,6 @@ public class MainActivity extends Activity{
             logError("Permissions & bluetooth requirement not met");
         } else {
             log("Enabled scanning.");
-            //TODO: Turn scanning on/off periodically (always on for now)
             startScan();
         }
     }
@@ -604,6 +603,9 @@ public class MainActivity extends Activity{
 
     // Stop scanning
     private void stopScan() {
+        if (sHandler != null) {
+            sHandler.removeCallbacksAndMessages(null);
+        }
         sHandler = null;
         if (mScanning && mBluetoothAdapter != null && mBluetoothAdapter.isEnabled() && mBluetoothLeScanner != null) {
             mBluetoothLeScanner.stopScan(mScanCallback);
@@ -648,7 +650,12 @@ public class MainActivity extends Activity{
             @Override
             public void run() {
                 try {
-                    JSONObject config = new JSONObject(getURL("http://" + serverUrl + "/config"));
+                    String fetched = getURL("http://" + serverUrl + "/config");
+                    if (fetched == null) {
+                        logError("Configuration fetch failed.");
+                        return;
+                    }
+                    JSONObject config = new JSONObject(fetched);
                     SCAN_PERIOD = config.getLong("SCAN_PERIOD");
                     SCAN_DURATION = config.getLong("SCAN_DURATION");
                     SERVICE_UUID = config.getInt("SERVICE_UUID");
@@ -662,15 +669,19 @@ public class MainActivity extends Activity{
                     e.printStackTrace();
                 } finally {
                     log(String.format(Locale.getDefault(),
-                            "Updated Config:\nSCAN_PERIOD: %d\nSCAN_DURATION: %d\nSERVICE_UUID: 0x%04x\nPROTOCOL_VER: 0x%02x\nadvertiseMode: %d\nadvertiseTxPower: %d\nscanMode: %d\n",
+                            "Current Config:\nSCAN_PERIOD: %d\nSCAN_DURATION: %d\nSERVICE_UUID: 0x%04x\nPROTOCOL_VER: 0x%02x\nadvertiseMode: %d\nadvertiseTxPower: %d\nscanMode: %d\n",
                             SCAN_PERIOD, SCAN_DURATION, SERVICE_UUID, PROTOCOL_VER, advertiseMode, advertiseTxPower, scanMode));
                     if (enabledScanning) {
-                        disableScan();
-                        enableScan();
+                        runOnUiThread(() -> {
+                            disableScan();
+                            enableScan();
+                        });
                     }
                     if (enabledAdvertising) {
-                        disableAdvertising();
-                        enableAdvertising();
+                        runOnUiThread(() -> {
+                            disableAdvertising();
+                            enableAdvertising();
+                        });
                     }
                 }
             }

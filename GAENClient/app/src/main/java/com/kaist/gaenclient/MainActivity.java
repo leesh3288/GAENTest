@@ -95,7 +95,7 @@ public class MainActivity extends Activity{
     private byte txPower = 127;
     private byte rssiCorrection = -128;
 
-    // This will immediately be replaced with UUID v5 of supplied deviceId
+    // This will immediately be replaced with deviceID (previously: UUID v5 of supplied deviceId)
     private UUID RPI_UUID = NAMESPACE_GAEN;
 
     // Callbacks
@@ -287,7 +287,9 @@ public class MainActivity extends Activity{
 
         // Set device id
         deviceId = this.getIntent().getStringExtra("deviceId");
-        RPI_UUID = Utils.HashUuidCreator.getSha1Uuid(NAMESPACE_GAEN, deviceId);
+        byte[] padded = new byte[16], deviceIdBytes = deviceId.getBytes();
+        System.arraycopy(deviceIdBytes, 0, padded, 0, Math.min(deviceIdBytes.length, padded.length));
+        RPI_UUID = Utils.UUIDConvert.asUuid(padded);  // Utils.HashUuidCreator.getSha1Uuid(NAMESPACE_GAEN, deviceId);
         mBinding.deviceId.setText("Device ID: " + deviceId + "\nRPI_UUID: " + RPI_UUID.toString());
 
         // Load calibration data

@@ -1,17 +1,28 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+    <h1 id="header">GAEN Test App Console</h1>
+    <div class="grid body">
+      <Status class="status-component"/>
+      <Control class="control-component"/>
+      <Log class="log-component"/>
+    </div>
     <HelloWorld msg="Welcome to Your Vue.js App"/>
   </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+// import HelloWorld from './components/HelloWorld.vue'
+import Log from './components/Log'
+import Status from './components/Status'
+import Control from './components/Control'
 
 export default {
   name: 'App',
   components: {
-    HelloWorld
+    Log,
+    Status,
+    Control
   }
 }
 </script>
@@ -23,6 +34,38 @@ export default {
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  margin-top: 60px;
+  /* background-color: aqua; */
+  margin-top: 10px;
+}
+
+#header {
+  font-size: 40px;
+}
+
+.h1 {
+  margin-bottom: 40px;
+}
+
+.grid {
+  display: grid;
+  grid-template: 2fr 5fr / 1fr 1fr;
+}
+
+.body {
+  height: 85vh;
+}
+
+.log-component {
+  grid-row: 1/3;
+  grid-column: 2;
+  /* overflow: auto; */
+}
+.control-component {
+  grid-row: 1;
+  grid-column: 1;
+}
+.status-component {
+  grid-row: 2;
+  grid-column: 1;
 }
 </style>

@@ -11,16 +11,16 @@ GRANT ALL PRIVILEGES ON gaen_db.* TO 'GAEN'@'localhost';
 use gaen_db;
 CREATE TABLE logs (
     id INT PRIMARY KEY,
-    myId CHAR(36) NOT NULL,
-    time TIMESTAMP(6) NOT NULL,
     testId CHAR(100),
-    logType INT,
+    myId CHAR(36) NOT NULL,
     otherId CHAR(36),
+    time TIMESTAMP(6) NOT NULL,
+    logType INT,    
     rssi INT,
-    rssiCorrection INT,
     tx INT,
+    rssiCorrection INT,
     attenuation INT,
-    UNIQUE KEY (myId, time, logType)
+    UNIQUE KEY (myId, otherId, time, logType)
 );
 CREATE TABLE config (
     version INT NOT NULL PRIMARY KEY,

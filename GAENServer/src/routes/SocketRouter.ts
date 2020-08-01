@@ -10,11 +10,6 @@ module.exports = function(socket, socketDict, app) {
     // Ask for client type
     socket.emit('client-type');
     console.log('Emitted client-type');
-    console.log(socketDict);
-
-    socket.on('test', function(data) {
-        console.log('test function called.');
-    })
 
     // Check client type (device/console)
     socket.on('type-console', async function(data) {
@@ -43,7 +38,6 @@ module.exports = function(socket, socketDict, app) {
     socket.on('type-device', function(data) {
         console.log("type-device called");
         var idx = socketDict[data.deviceName];
-        console.log(idx);
         if (idx == undefined) {
             socketDict[data.deviceName] = socketId;
             socket.emit('init-device');
@@ -58,7 +52,6 @@ module.exports = function(socket, socketDict, app) {
     socket.on('start', function(data) {
         console.log('start called');
         const testId = data.testId;
-        console.log(testId);
         socket.broadcast.emit('start', {
             testId: testId
         });
@@ -77,12 +70,4 @@ module.exports = function(socket, socketDict, app) {
         delete socketDict[deviceName];
         console.log(socketDict);
     })
-}
-
-function removeDev(socketList, deviceList, devName) {
-    const index = deviceList.indexOf(devName);
-    if (index > -1) {
-        socketList.splice(index, 1);
-        deviceList.splice(index, 1);
-    }
 }

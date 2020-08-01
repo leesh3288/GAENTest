@@ -48,7 +48,7 @@ export default {
 
 .grid {
   display: grid;
-  grid-template: 2fr 5fr / 1fr 1fr;
+  grid-template: 1fr 2fr / 1fr 1fr;
 }
 
 .body {

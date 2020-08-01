@@ -21,7 +21,9 @@
       "express": "^4.17.1",
       "express-async-handler": "^1.1.4",
       "mysql": "^2.14.1",
+      "mysql-client": "^0.3.0",
       "reflect-metadata": "^0.1.10",
+      "socket.io": "^2.3.0",
       "typeorm": "0.2.25"
    },
    "scripts": {

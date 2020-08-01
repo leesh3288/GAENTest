@@ -14,6 +14,8 @@
 <script>
 import {eventBus} from '../bus'
 
+var enabled = false;
+
 export default {
   name: 'HelloWorld',
   data: function () {
@@ -40,6 +42,15 @@ export default {
     clearLog: function() {
       eventBus.$emit('clearLog');
     }
+  },
+  created() {
+    this.$socket.on('init-console', (data) => {
+      enabled = true;
+      console.log(data);
+    });
+    this.$socket.on('refuse-console', (data) => {
+      enabled = false;
+    });
   }
 }
 </script>

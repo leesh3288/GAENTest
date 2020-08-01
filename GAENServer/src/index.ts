@@ -8,7 +8,6 @@ import {RootRouter} from "./routes/RootRouter"
 import {Config} from "./entity/Config"
 import {AdvertiseSettings, ScanSettings} from "./type/BluetoothLE"
 
-
 const app = express();
 
 app.set('views', __dirname + '/views');
@@ -19,6 +18,8 @@ app.use(express.static('public'));
 app.use(bodyParser.json());
 app.use(cors());
 
+const socketList = [];
+const deviceList = [];
 
 console.log("Connecting to MySQL DB...");
 createConnection().then(async db => {
@@ -46,10 +47,16 @@ createConnection().then(async db => {
     
     console.log("Initialized config.");
 
-    app.listen(80, () => console.log("Express server has started on port 80"))
+    var server = app.listen(80, () => console.log("Express server has started on port 80"))
 
     app.set('db', db);
 
     app.use('/', RootRouter);
+
+    var io = require('socket.io').listen(server);
+    io.sockets.on('connection', function (socket) {
+        socket.emit('client-type');
+        require('./routes/SocketRouter')(socket, socketList, deviceList, io);
+    })
 
 }).catch(error => console.log(error));

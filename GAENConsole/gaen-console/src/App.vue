@@ -23,6 +23,12 @@ export default {
     Log,
     Status,
     Control
+  },
+  created() {
+    this.$socket.on('clienttype', () => {
+      console.log('received client-type');
+      this.$socket.emit('type-console');
+    });
   }
 }
 </script>

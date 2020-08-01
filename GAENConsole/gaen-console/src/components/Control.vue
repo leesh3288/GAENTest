@@ -14,7 +14,7 @@
 <script>
 import {eventBus} from '../bus'
 
-var enabled = false;
+// var enabled = false;
 
 export default {
   name: 'HelloWorld',
@@ -28,6 +28,7 @@ export default {
     startExperiment: function () {
       console.log(this.test.id);
       eventBus.$emit('log', this.test.id);
+      this.$socket.emit('test');
       // this.$socket.emit('startExperiment',{
       //   testId: document.getElementById("testid").textContent
       // });
@@ -45,11 +46,12 @@ export default {
   },
   created() {
     this.$socket.on('init-console', (data) => {
-      enabled = true;
+      // enabled = true;
       console.log(data);
     });
     this.$socket.on('refuse-console', (data) => {
-      enabled = false;
+      // enabled = false;
+      console.log(data);
     });
   }
 }

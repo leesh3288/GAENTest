@@ -1,24 +1,38 @@
-module.exports = function(socket, socketList, deviceList, io) {
+module.exports = function(socket, socketDict, io) {
     const socketId = socket.id;
 
     console.log('Socket connected.');
+    socket.emit('clienttype');
+    console.log('Emitted client-type');
+    console.log(socketDict);
+
+    socket.on('test', function(data) {
+        console.log('test function called.');
+    })
 
     // Check client type (device/console)
     socket.on('type-console', function(data) {
-        const idx = deviceList.indexOf('console');
-        if (idx == -1) {
+        var idx = socketDict['console'];
+        console.log("idx: "+idx);
+        if (idx == undefined) {
+            socketDict['console'] = socketId;
             socket.emit('init-console', {
-                data: "1234"
+                data: "init-console-data"
             })
         } else {
             socket.emit('refuse-console');
         }
+        console.log(socketDict);
+    })
+
+    socket.on('type-device', function(data) {
+        // TODO: add information to lists
     })
 
     socket.on('disconnect', function(data) {
         console.log('Socket disconnected.');
-        removeDev(socketList, deviceList, socketId);
-        console.log(socketList);
+        delete socketDict['console'];
+        console.log(socketDict);
     })
 }
 

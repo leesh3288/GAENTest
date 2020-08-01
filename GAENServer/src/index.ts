@@ -18,8 +18,7 @@ app.use(express.static('public'));
 app.use(bodyParser.json());
 app.use(cors());
 
-const socketList = [];
-const deviceList = [];
+const socketDict = {};
 
 console.log("Connecting to MySQL DB...");
 createConnection().then(async db => {
@@ -55,8 +54,7 @@ createConnection().then(async db => {
 
     var io = require('socket.io').listen(server);
     io.sockets.on('connection', function (socket) {
-        socket.emit('client-type');
-        require('./routes/SocketRouter')(socket, socketList, deviceList, io);
+        require('./routes/SocketRouter')(socket, socketDict, io);
     })
 
 }).catch(error => console.log(error));

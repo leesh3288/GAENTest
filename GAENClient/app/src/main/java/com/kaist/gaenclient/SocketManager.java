@@ -50,6 +50,7 @@ public class SocketManager {
             }
             try {
                 Log.i("Socket","start called");
+                mainActivity.clearLog();
                 mainActivity.fetchConfig();
                 mainActivity.setAdvertise(true);
                 mainActivity.setScan(true);

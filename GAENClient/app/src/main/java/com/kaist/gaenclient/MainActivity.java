@@ -900,4 +900,8 @@ public class MainActivity extends Activity{
         Log.i("TEST_ID", testId);
         runOnUiThread(() -> mBinding.deviceId.setText("Device ID: " + deviceId + "\nTest ID: " + testId));
     }
+
+    public void clearLog() {
+        scanned.clear();
+    }
 }

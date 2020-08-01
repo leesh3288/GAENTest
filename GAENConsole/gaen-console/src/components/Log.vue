@@ -27,8 +27,6 @@ export default {
   },
   methods: {
     addLog: function(msg) {
-      console.log("add log")
-      console.log(this.logs);
       this.logs.unshift({
         msg: msg,
         id: logId
@@ -41,13 +39,19 @@ export default {
   },
   created() {
     this.addLog("asdfasdfasdfsdaf");
-    eventBus.$on('log',(data) => {
+    eventBus.$on('log', (data) => {
       this.addLog(data);
       console.log(data); //abc
     });
     eventBus.$on('clearLog', () => {
       this.clearLog();
     })
+    this.$socket.on('refuse-console', () => {
+      this.addLog('[ERROR] Connection refused. Another console page is active.');
+    });
+    this.$socket.on('init-console-fail', () => {
+      this.addLog('[ERROR] Connection refused. Failed to fetch config.');
+    });
   }
 }
 </script>

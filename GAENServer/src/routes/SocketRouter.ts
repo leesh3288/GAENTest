@@ -1,5 +1,9 @@
-module.exports = function(socket, socketDict, io) {
+import { Connection } from "typeorm";
+import { Config } from "../entity/Config"
+
+module.exports = function(socket, socketDict, io, app) {
     const socketId = socket.id;
+    var consoleId = socketDict['console'];
 
     console.log('Socket connected.');
     socket.emit('clienttype');
@@ -11,14 +15,23 @@ module.exports = function(socket, socketDict, io) {
     })
 
     // Check client type (device/console)
-    socket.on('type-console', function(data) {
+    socket.on('type-console', async function(data) {
         var idx = socketDict['console'];
         console.log("idx: "+idx);
         if (idx == undefined) {
             socketDict['console'] = socketId;
-            socket.emit('init-console', {
-                data: "init-console-data"
-            })
+            consoleId = socketId;
+            let db: Connection = app.get('db');
+            let config: Config;
+            try {
+                config = await db.manager.getRepository(Config).findOne();
+            } catch (e) {
+                console.log("Failed to fetch config. Exception:");
+                console.log(e);
+                socket.emit('init-console-fail');
+                return;
+            }
+            socket.emit('init-console', config);
         } else {
             socket.emit('refuse-console');
         }
@@ -31,7 +44,9 @@ module.exports = function(socket, socketDict, io) {
 
     socket.on('disconnect', function(data) {
         console.log('Socket disconnected.');
-        delete socketDict['console'];
+        if (consoleId == socketId) {
+            delete socketDict['console'];
+        }
         console.log(socketDict);
     })
 }

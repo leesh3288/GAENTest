@@ -54,7 +54,7 @@ createConnection().then(async db => {
 
     var io = require('socket.io').listen(server);
     io.sockets.on('connection', function (socket) {
-        require('./routes/SocketRouter')(socket, socketDict, io);
+        require('./routes/SocketRouter')(socket, socketDict, io, app);
     })
 
 }).catch(error => console.log(error));

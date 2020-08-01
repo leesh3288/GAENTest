@@ -43,6 +43,11 @@ public class SocketManager {
         mSocket.on("start", args -> {
             mainActivity.log("Experiment started.");
             try {
+                mainActivity.setTestId((new JSONObject(args[0].toString())).get("testId").toString());
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            try {
                 Log.i("Socket","start called");
                 mainActivity.fetchConfig();
                 mainActivity.setAdvertise(true);

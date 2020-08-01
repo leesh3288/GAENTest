@@ -1,7 +1,7 @@
 import { Connection } from "typeorm";
 import { Config } from "../entity/Config"
 
-module.exports = function(socket, socketDict, io, app) {
+module.exports = function(socket, socketDict, app) {
     const socketId = socket.id;
     var consoleId = socketDict['console'];
     var deviceName = "";

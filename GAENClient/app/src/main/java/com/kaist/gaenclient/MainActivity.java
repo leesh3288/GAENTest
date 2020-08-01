@@ -70,8 +70,6 @@ public class MainActivity extends Activity{
     private Handler sHandler;
     private Handler uHandler;
 
-    private SocketManager mSocketManager;
-
     // Config variables
     private long SCAN_PERIOD = Config.SCAN_PERIOD;
     private long SCAN_DURATION = Config.SCAN_DURATION;
@@ -84,6 +82,9 @@ public class MainActivity extends Activity{
     private int scanMode = Config.scanMode;
     private String serverUrl = Config.serverUrl;
     private final UUID NAMESPACE_GAEN = Config.NAMESPACE_GAEN;
+
+    // Current test id
+    private String testId;
 
     // Device info
     private String DEVICE_MODEL = Build.MODEL.toLowerCase();
@@ -132,7 +133,7 @@ public class MainActivity extends Activity{
             Log.i(TAG, "ScanResult:");
             // These four elements are probably the complete information.
             // Reference: https://github.com/AltBeacon/android-beacon-library/blob/master/lib/src/main/java/org/altbeacon/beacon/service/scanner/CycledLeScannerForLollipop.java#L350
-            ScanLogEntry entry = ScanLogEntry.fromScanResult(result, SERVICE_UUID, PROTOCOL_VER, RPI_UUID, rssiCorrection);
+            ScanLogEntry entry = ScanLogEntry.fromScanResult(result, SERVICE_UUID, PROTOCOL_VER, deviceId, rssiCorrection, testId);
             if (entry == null)
                 return;
             log(entry.toString());
@@ -292,16 +293,18 @@ public class MainActivity extends Activity{
 
         // Set device id
         deviceId = this.getIntent().getStringExtra("deviceId");
+        // DeviceId <= 16 bytes
+        deviceId = deviceId.substring(0, Math.min(deviceId.length(), 16));
         byte[] padded = new byte[16], deviceIdBytes = deviceId.getBytes();
         System.arraycopy(deviceIdBytes, 0, padded, 0, Math.min(deviceIdBytes.length, padded.length));
         RPI_UUID = Utils.UUIDConvert.asUuid(padded);  // Utils.HashUuidCreator.getSha1Uuid(NAMESPACE_GAEN, deviceId);
-        mBinding.deviceId.setText("Device ID: " + deviceId + "\nRPI_UUID: " + RPI_UUID.toString());
+        mBinding.deviceId.setText("Device ID: " + deviceId + "\nTest ID: -");
 
         // Load calibration data
         loadCalibrationData();
 
         // Socket connection
-        mSocketManager = new SocketManager(deviceId, this);
+        new SocketManager(deviceId, this);
 	}
 
 
@@ -452,12 +455,13 @@ public class MainActivity extends Activity{
                 .build();
 
         // Service data payload, as in GAEN protocol
-        byte[] RPI = Utils.UUIDConvert.asBytes(RPI_UUID);
+        // RPI is just deviceId string
+        byte[] RPI = deviceId.getBytes();
         byte[] AEM = {PROTOCOL_VER, txPower, 0, 0};
         byte[] advertisingBytes = new byte[20];
 
         System.arraycopy(RPI, 0, advertisingBytes, 0, RPI.length);
-        System.arraycopy(AEM, 0, advertisingBytes, RPI.length, AEM.length);
+        System.arraycopy(AEM, 0, advertisingBytes, 16, AEM.length);
 
         AdvertiseData data = new AdvertiseData.Builder()
                 .addServiceData(SERVICE_PARCEL_UUID, advertisingBytes)
@@ -888,5 +892,10 @@ public class MainActivity extends Activity{
             }
         }
         return null;
+    }
+
+    public void setTestId(String newId) {
+        testId = newId.substring(Math.min(newId.length(), 100));
+        mBinding.deviceId.setText("Device ID: " + deviceId + "\nTest ID: " + testId);
     }
 }

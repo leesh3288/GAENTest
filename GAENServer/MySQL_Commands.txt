@@ -13,9 +13,11 @@ CREATE TABLE logs (
     id INT PRIMARY KEY,
     myId CHAR(36) NOT NULL,
     time TIMESTAMP(6) NOT NULL,
+    testId CHAR(100),
     logType INT,
     otherId CHAR(36),
     rssi INT,
+    rssiCorrection INT,
     tx INT,
     attenuation INT,
     UNIQUE KEY (myId, time, logType)

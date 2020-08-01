@@ -13,15 +13,17 @@ import java.util.Arrays;
 import java.util.UUID;
 
 public class ScanLogEntry {
-    private UUID myId;
+    private String testId;
+    private String myId;
     private long time;
     private int logType;
-    private UUID otherId;
+    private String otherId;
     private int rssi;
     private int tx;
     private int attenuation;
+    private byte rssiCorrection;
 
-    public static ScanLogEntry fromScanResult(ScanResult result, int SERVICE_UUID, int PROTOCOL_VER, UUID myId, byte rssiCorrection) {
+    public static ScanLogEntry fromScanResult(ScanResult result, int SERVICE_UUID, int PROTOCOL_VER, String myId, byte rssiCorrection, String testId) {
         ScanRecord scanRecord = result.getScanRecord();
         if (scanRecord == null)
             return null;
@@ -47,15 +49,17 @@ public class ScanLogEntry {
 
         ScanLogEntry entry = new ScanLogEntry();
 
+        entry.testId = testId;
         entry.myId = myId;
         entry.time = System.currentTimeMillis() -
                 SystemClock.elapsedRealtime() +
                 result.getTimestampNanos() / 1000000;
         entry.logType = 0;  // TODO: field useful or not?
-        entry.otherId = Utils.UUIDConvert.asUuid(Arrays.copyOfRange(data, 0xb, 0x1b));
+        entry.otherId = new String(Arrays.copyOfRange(data, 0xb, 0x1b));
         entry.rssi = result.getRssi();
         entry.tx = data[0x1c];
         entry.attenuation = entry.tx - (entry.rssi + rssiCorrection);
+        entry.rssiCorrection = rssiCorrection;
 
         return entry;
     }
@@ -63,11 +67,13 @@ public class ScanLogEntry {
     public JSONObject getJSONObject() {
         try {
             JSONObject obj = new JSONObject();
-            obj.put("myId", myId.toString());
+            obj.put("testId", testId);
+            obj.put("myId", myId);
             obj.put("time", time);
             obj.put("logType", logType);
-            obj.put("otherId", otherId.toString());
+            obj.put("otherId", otherId);
             obj.put("rssi", rssi);
+            obj.put("rssiCorrection", rssiCorrection);
             obj.put("tx", tx);
             obj.put("attenuation", attenuation);
             return obj;

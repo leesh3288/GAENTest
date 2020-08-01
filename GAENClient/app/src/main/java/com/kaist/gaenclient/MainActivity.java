@@ -68,14 +68,11 @@ public class MainActivity extends Activity{
 
     private ActivityMainBinding mBinding;
     private Handler sHandler;
-//    private Handler aHandler;
     private Handler uHandler;
 
     // Config variables
     private long SCAN_PERIOD = Config.SCAN_PERIOD;
     private long SCAN_DURATION = Config.SCAN_DURATION;
-//    private long ADVERTISE_PERIOD = Config.ADVERTISE_PERIOD;
-//    private long ADVERTISE_DURATION = Config.ADVERTISE_DURATION;
     private long UPLOAD_PERIOD = Config.UPLOAD_PERIOD;
     private int SERVICE_UUID = Config.SERVICE_UUID;
     private ParcelUuid SERVICE_PARCEL_UUID = Utils.UUIDConvert.convertShortToParcelUuid(SERVICE_UUID);
@@ -85,6 +82,9 @@ public class MainActivity extends Activity{
     private int scanMode = Config.scanMode;
     private String serverUrl = Config.serverUrl;
     private final UUID NAMESPACE_GAEN = Config.NAMESPACE_GAEN;
+
+    // Current test id
+    private String testId;
 
     // Device info
     private String DEVICE_MODEL = Build.MODEL.toLowerCase();
@@ -133,7 +133,7 @@ public class MainActivity extends Activity{
             Log.i(TAG, "ScanResult:");
             // These four elements are probably the complete information.
             // Reference: https://github.com/AltBeacon/android-beacon-library/blob/master/lib/src/main/java/org/altbeacon/beacon/service/scanner/CycledLeScannerForLollipop.java#L350
-            ScanLogEntry entry = ScanLogEntry.fromScanResult(result, SERVICE_UUID, PROTOCOL_VER, RPI_UUID, rssiCorrection);
+            ScanLogEntry entry = ScanLogEntry.fromScanResult(result, SERVICE_UUID, PROTOCOL_VER, deviceId, rssiCorrection, testId);
             if (entry == null)
                 return;
             log(entry.toString());
@@ -264,7 +264,13 @@ public class MainActivity extends Activity{
                 }}});
         mBinding.fetchConfigButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) { fetchConfig(); }
+            public void onClick(View v) {
+                try {
+                    fetchConfig();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         });
         mBinding.uploadButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -287,13 +293,18 @@ public class MainActivity extends Activity{
 
         // Set device id
         deviceId = this.getIntent().getStringExtra("deviceId");
+        // DeviceId <= 16 bytes
+        deviceId = deviceId.substring(0, Math.min(deviceId.length(), 16));
         byte[] padded = new byte[16], deviceIdBytes = deviceId.getBytes();
         System.arraycopy(deviceIdBytes, 0, padded, 0, Math.min(deviceIdBytes.length, padded.length));
         RPI_UUID = Utils.UUIDConvert.asUuid(padded);  // Utils.HashUuidCreator.getSha1Uuid(NAMESPACE_GAEN, deviceId);
-        mBinding.deviceId.setText("Device ID: " + deviceId + "\nRPI_UUID: " + RPI_UUID.toString());
+        mBinding.deviceId.setText("Device ID: " + deviceId + "\nTest ID: -");
 
         // Load calibration data
         loadCalibrationData();
+
+        // Socket connection
+        new SocketManager(deviceId, this);
 	}
 
 
@@ -408,8 +419,12 @@ public class MainActivity extends Activity{
     /**
      * Advertising
      */
+    // Setting advertiseSwitch
+    public void setAdvertise(boolean adv) {
+        runOnUiThread(() -> mBinding.advertiseSwitch.setChecked(adv));
+    }
 
-    // Listener method for scanSwitch
+    // Listener method for advertiseSwitch
     private void enableAdvertising() {
         if(!hasPermissions()) {
             mBinding.advertiseSwitch.setChecked(false);
@@ -420,7 +435,7 @@ public class MainActivity extends Activity{
         }
     }
 
-    // Listener method for scanSwitch
+    // Listener method for advertiseSwitch
     private void disableAdvertising() {
         log("Disabled advertising.");
         stopAdvertising();
@@ -440,12 +455,13 @@ public class MainActivity extends Activity{
                 .build();
 
         // Service data payload, as in GAEN protocol
-        byte[] RPI = Utils.UUIDConvert.asBytes(RPI_UUID);
+        // RPI is just deviceId string
+        byte[] RPI = deviceId.getBytes();
         byte[] AEM = {PROTOCOL_VER, txPower, 0, 0};
         byte[] advertisingBytes = new byte[20];
 
         System.arraycopy(RPI, 0, advertisingBytes, 0, RPI.length);
-        System.arraycopy(AEM, 0, advertisingBytes, RPI.length, AEM.length);
+        System.arraycopy(AEM, 0, advertisingBytes, 16, AEM.length);
 
         AdvertiseData data = new AdvertiseData.Builder()
                 .addServiceData(SERVICE_PARCEL_UUID, advertisingBytes)
@@ -557,6 +573,10 @@ public class MainActivity extends Activity{
     /**
      * Scanning
      */
+    // Setting scanSwitch
+    public void setScan(boolean scan) {
+        runOnUiThread(() -> mBinding.scanSwitch.setChecked(scan));
+    }
 
     // Listener method for scanSwitch
     private void enableScan() {
@@ -644,13 +664,11 @@ public class MainActivity extends Activity{
      * Logging
      */
 
-    //TODO: Logging is only done on screen. Must save it somewhere.
-
-    private void log(String msg) {
+    public void log(String msg) {
 	    runOnUiThread(() -> mBinding.logTextview.setText(msg + "\n" + mBinding.logTextview.getText()));
     }
 
-    private void logError(String msg) {
+    public void logError(String msg) {
         log("Error: " + msg);
     }
 
@@ -680,7 +698,7 @@ public class MainActivity extends Activity{
         uHandler.postDelayed(this::periodicUpload, UPLOAD_PERIOD);
     }
 
-    private void uploadServer() {
+    public void uploadServer() {
         new Thread() {
             @Override
             public void run() {
@@ -774,8 +792,8 @@ public class MainActivity extends Activity{
         }.start();
     }
 
-    private void fetchConfig() {
-        new Thread(){
+    public void fetchConfig() throws InterruptedException {
+        Thread th = new Thread(){
             @Override
             public void run() {
                 try {
@@ -821,7 +839,9 @@ public class MainActivity extends Activity{
                     }
                 }
             }
-        }.start();
+        };
+        th.start();
+        th.join();
     }
 
     private String getURL(String url) {
@@ -872,5 +892,16 @@ public class MainActivity extends Activity{
             }
         }
         return null;
+    }
+
+    public void setTestId(String newId) {
+        Log.i("TEST_ID", newId);
+        testId = newId.substring(0,Math.min(newId.length(), 100));
+        Log.i("TEST_ID", testId);
+        runOnUiThread(() -> mBinding.deviceId.setText("Device ID: " + deviceId + "\nTest ID: " + testId));
+    }
+
+    public void clearLog() {
+        scanned.clear();
     }
 }

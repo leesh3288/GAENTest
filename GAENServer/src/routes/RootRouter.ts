@@ -33,11 +33,13 @@ RootRouter.put('/log', asyncHandler(async (req, res, next) => {
             continue;
         }
         const log = new Log();
+        log.testId = entry.testId;
         log.myId = entry.myId;
         log.time = new Date(entry.time);
         log.logType = entry.logType;
         log.otherId = entry.otherId;
         log.rssi = entry.rssi;
+        log.rssiCorrection = entry.rssiCorrection;
         log.tx = entry.tx;
         log.attenuation = entry.attenuation;
         logs.push(log);

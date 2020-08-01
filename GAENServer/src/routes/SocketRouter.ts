@@ -57,9 +57,10 @@ module.exports = function(socket, socketDict, app) {
     // Start/stop functions
     socket.on('start', function(data) {
         console.log('start called');
-        const testid = data.testId;
+        const testId = data.testId;
+        console.log(testId);
         socket.broadcast.emit('start', {
-            testId: testid
+            testId: testId
         });
         socket.emit('start-done');
     })

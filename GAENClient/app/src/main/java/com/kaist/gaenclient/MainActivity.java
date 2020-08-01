@@ -895,7 +895,9 @@ public class MainActivity extends Activity{
     }
 
     public void setTestId(String newId) {
-        testId = newId.substring(Math.min(newId.length(), 100));
-        mBinding.deviceId.setText("Device ID: " + deviceId + "\nTest ID: " + testId);
+        Log.i("TEST_ID", newId);
+        testId = newId.substring(0,Math.min(newId.length(), 100));
+        Log.i("TEST_ID", testId);
+        runOnUiThread(() -> mBinding.deviceId.setText("Device ID: " + deviceId + "\nTest ID: " + testId));
     }
 }

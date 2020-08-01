@@ -43,6 +43,7 @@ public class SocketManager {
         mSocket.on("start", args -> {
             mainActivity.log("Experiment started.");
             try {
+                Log.i("Socket",(new JSONObject(args[0].toString())).get("testId").toString());
                 mainActivity.setTestId((new JSONObject(args[0].toString())).get("testId").toString());
             } catch (JSONException e) {
                 e.printStackTrace();

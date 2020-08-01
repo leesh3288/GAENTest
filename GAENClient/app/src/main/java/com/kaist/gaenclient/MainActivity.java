@@ -71,6 +71,8 @@ public class MainActivity extends Activity{
 //    private Handler aHandler;
     private Handler uHandler;
 
+    private SocketManager mSocketManager;
+
     // Config variables
     private long SCAN_PERIOD = Config.SCAN_PERIOD;
     private long SCAN_DURATION = Config.SCAN_DURATION;
@@ -294,6 +296,9 @@ public class MainActivity extends Activity{
 
         // Load calibration data
         loadCalibrationData();
+
+        // Socket connection
+        mSocketManager = new SocketManager(deviceId, this);
 	}
 
 
@@ -644,13 +649,11 @@ public class MainActivity extends Activity{
      * Logging
      */
 
-    //TODO: Logging is only done on screen. Must save it somewhere.
-
-    private void log(String msg) {
+    public void log(String msg) {
 	    runOnUiThread(() -> mBinding.logTextview.setText(msg + "\n" + mBinding.logTextview.getText()));
     }
 
-    private void logError(String msg) {
+    public void logError(String msg) {
         log("Error: " + msg);
     }
 

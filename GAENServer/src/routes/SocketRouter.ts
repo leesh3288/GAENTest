@@ -6,7 +6,7 @@ module.exports = function(socket, socketDict, io, app) {
     var consoleId = socketDict['console'];
 
     console.log('Socket connected.');
-    socket.emit('clienttype');
+    socket.emit('client-type');
     console.log('Emitted client-type');
     console.log(socketDict);
 
@@ -17,7 +17,6 @@ module.exports = function(socket, socketDict, io, app) {
     // Check client type (device/console)
     socket.on('type-console', async function(data) {
         var idx = socketDict['console'];
-        console.log("idx: "+idx);
         if (idx == undefined) {
             socketDict['console'] = socketId;
             consoleId = socketId;
@@ -39,7 +38,15 @@ module.exports = function(socket, socketDict, io, app) {
     })
 
     socket.on('type-device', function(data) {
-        // TODO: add information to lists
+        console.log("type-device called");
+        var idx = socketDict[data.deviceName];
+        console.log(idx);
+        if (idx == undefined) {
+            socketDict[data.deviceName] = socketId;
+            socket.emit('init-device');
+        } else {
+            socket.emit('refuse-device');
+        }
     })
 
     socket.on('disconnect', function(data) {

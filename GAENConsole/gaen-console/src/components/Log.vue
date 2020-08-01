@@ -52,6 +52,12 @@ export default {
     this.$socket.on('init-console-fail', () => {
       this.addLog('[ERROR] Connection refused. Failed to fetch config.');
     });
+    this.$socket.on('start-done', () => {
+      this.addLog('Experiment started.');
+    });
+    this.$socket.on('stop-done', () => {
+      this.addLog('Experiment stopped.');
+    });
   }
 }
 </script>

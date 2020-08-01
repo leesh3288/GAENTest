@@ -14,7 +14,7 @@
 <script>
 import {eventBus} from '../bus'
 
-// var enabled = false;
+var enabled = false;
 
 export default {
   name: 'HelloWorld',
@@ -26,19 +26,22 @@ export default {
   },
   methods: {
     startExperiment: function () {
-      console.log(this.test.id);
-      eventBus.$emit('log', this.test.id);
-      this.$socket.emit('test');
-      // this.$socket.emit('startExperiment',{
-      //   testId: document.getElementById("testid").textContent
-      // });
+      if (!enabled) {
+        eventBus.$emit('log', '[ERROR] This console is disabled.');
+        return;
+      }
+      eventBus.$emit('log', 'Button clicked: Start experiment.');
+      this.$socket.emit('start',{
+        testId: this.test.id
+      });
     },
     stopExperiment: function () {
-      console.log(this.test.id);
-      eventBus.$emit('log', this.test.id);
-      // this.$socket.emit('startExperiment',{
-      //   testId: document.getElementById("testid").textContent
-      // });
+      if (!enabled) {
+        eventBus.$emit('log', '[ERROR] This console is disabled.');
+        return;
+      }
+      eventBus.$emit('log', 'Button clicked: Stop experiment.');
+      this.$socket.emit('stop');
     },
     clearLog: function() {
       eventBus.$emit('clearLog');
@@ -46,12 +49,11 @@ export default {
   },
   created() {
     this.$socket.on('init-console', (data) => {
-      // enabled = true;
-      console.log(data);
+      enabled = true;
+      eventBus.$emit('log', data);
     });
-    this.$socket.on('refuse-console', (data) => {
-      // enabled = false;
-      console.log(data);
+    this.$socket.on('refuse-console', () => {
+      enabled = false;
     });
   }
 }

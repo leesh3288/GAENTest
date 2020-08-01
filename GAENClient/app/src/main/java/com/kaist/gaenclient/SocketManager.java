@@ -9,7 +9,6 @@ import java.net.URISyntaxException;
 
 import io.socket.client.IO;
 import io.socket.client.Socket;
-import io.socket.emitter.Emitter;
 
 public class SocketManager {
     private Socket mSocket;
@@ -39,14 +38,30 @@ public class SocketManager {
             }
         });
 
-        mSocket.on("init-device", args -> {
-            this.mainActivity.log("Successfully connected to server");
+        mSocket.on("init-device", args -> mainActivity.log("Successfully connected to server"));
+        mSocket.on("refuse-device", args -> mainActivity.logError("Failed to connect to server. DeviceName already taken. Please choose another name."));
+        mSocket.on("start", args -> {
+            mainActivity.log("Experiment started.");
+            try {
+                Log.i("Socket","start called");
+                mainActivity.fetchConfig();
+                mainActivity.setAdvertise(true);
+                mainActivity.setScan(true);
+                mainActivity.log("Start experiment.");
+                mSocket.emit("start-success");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                mSocket.emit("start-fail");
+            }
         });
-        mSocket.on("refuse-device", args -> this.mainActivity.logError("Failed to connect to server. DeviceName already taken."));
+        mSocket.on("stop", args -> {
+            Log.i("Socket","stop called");
+            mainActivity.setAdvertise(false);
+            mainActivity.setScan(false);
+            mainActivity.uploadServer();
+            mSocket.emit("stop-success");
+            mainActivity.log("Stop experiment.");
+            mainActivity.log("Experiment stopped.");
+        });
     }
-
-    public void asdf() {
-        System.out.println(deviceName);
-    }
-
 }

@@ -68,7 +68,6 @@ public class MainActivity extends Activity{
 
     private ActivityMainBinding mBinding;
     private Handler sHandler;
-//    private Handler aHandler;
     private Handler uHandler;
 
     private SocketManager mSocketManager;
@@ -76,8 +75,6 @@ public class MainActivity extends Activity{
     // Config variables
     private long SCAN_PERIOD = Config.SCAN_PERIOD;
     private long SCAN_DURATION = Config.SCAN_DURATION;
-//    private long ADVERTISE_PERIOD = Config.ADVERTISE_PERIOD;
-//    private long ADVERTISE_DURATION = Config.ADVERTISE_DURATION;
     private long UPLOAD_PERIOD = Config.UPLOAD_PERIOD;
     private int SERVICE_UUID = Config.SERVICE_UUID;
     private ParcelUuid SERVICE_PARCEL_UUID = Utils.UUIDConvert.convertShortToParcelUuid(SERVICE_UUID);
@@ -266,7 +263,13 @@ public class MainActivity extends Activity{
                 }}});
         mBinding.fetchConfigButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) { fetchConfig(); }
+            public void onClick(View v) {
+                try {
+                    fetchConfig();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         });
         mBinding.uploadButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -413,8 +416,12 @@ public class MainActivity extends Activity{
     /**
      * Advertising
      */
+    // Setting advertiseSwitch
+    public void setAdvertise(boolean adv) {
+        runOnUiThread(() -> mBinding.advertiseSwitch.setChecked(adv));
+    }
 
-    // Listener method for scanSwitch
+    // Listener method for advertiseSwitch
     private void enableAdvertising() {
         if(!hasPermissions()) {
             mBinding.advertiseSwitch.setChecked(false);
@@ -425,7 +432,7 @@ public class MainActivity extends Activity{
         }
     }
 
-    // Listener method for scanSwitch
+    // Listener method for advertiseSwitch
     private void disableAdvertising() {
         log("Disabled advertising.");
         stopAdvertising();
@@ -562,6 +569,10 @@ public class MainActivity extends Activity{
     /**
      * Scanning
      */
+    // Setting scanSwitch
+    public void setScan(boolean scan) {
+        runOnUiThread(() -> mBinding.scanSwitch.setChecked(scan));
+    }
 
     // Listener method for scanSwitch
     private void enableScan() {
@@ -683,7 +694,7 @@ public class MainActivity extends Activity{
         uHandler.postDelayed(this::periodicUpload, UPLOAD_PERIOD);
     }
 
-    private void uploadServer() {
+    public void uploadServer() {
         new Thread() {
             @Override
             public void run() {
@@ -777,8 +788,8 @@ public class MainActivity extends Activity{
         }.start();
     }
 
-    private void fetchConfig() {
-        new Thread(){
+    public void fetchConfig() throws InterruptedException {
+        Thread th = new Thread(){
             @Override
             public void run() {
                 try {
@@ -824,7 +835,9 @@ public class MainActivity extends Activity{
                     }
                 }
             }
-        }.start();
+        };
+        th.start();
+        th.join();
     }
 
     private String getURL(String url) {

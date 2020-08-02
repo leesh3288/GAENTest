@@ -511,36 +511,47 @@ public class MainActivity extends Activity{
             return;
         }
 
-        /* 1. Model
-         * 2. Average over OEM match
-         * 3. Average over all devices
+        /* 1. Model w/ conf > 1
+         * 2. Heuristics on stripped model name (matches oem & stripped model name) w/ conf > 1
+         * 3. Model
+         * 4. Average over OEM match
+         * 5. Average over all devices
          */
 
+        String[] fullMatch = null, stripMatch = null;
+        byte fullTx = 0, fullCorr = 0, stripTx = 0, stripCorr = 0;
+        int fullConf = 1, stripConf = 1;
         int allTx = 0, allCorr = 0, allCount = 0, oemTx = 0, oemCorr = 0, oemCount = 0;
 
         for (String[] deviceData: data) {
             if (deviceData.length < maxIndex + 1)
                 continue;
 
+            int conf;
             byte tx, corr;
             try {
                 tx = (byte) Integer.parseInt(deviceData[idx_tx]);
                 corr = (byte) Integer.parseInt(deviceData[idx_corr]);
+                conf = Integer.parseInt(deviceData[idx_conf]);
             } catch (NumberFormatException ignored) {
                 continue;  // ignore malformed data
             }
 
-            // Model match
-            if (deviceData[idx_model].toLowerCase().equals(DEVICE_MODEL)) {
-                txPower = tx;
-                rssiCorrection = corr;
-                log(String.format(Locale.getDefault(),
-                        "Using model-matched calibration data.\n > OEM: %s (CSV indicates: %s)\n > Model: %s\n > TX_power: %d\n > RSSI_correction: %d\n > Confidence: %s",
-                        DEVICE_OEM, deviceData[idx_oem].toLowerCase(), DEVICE_MODEL, txPower, rssiCorrection, deviceData[idx_conf]));
-                return;
-            }
-
             if (deviceData[idx_oem].toLowerCase().equals(DEVICE_OEM)) {
+                // Model match
+                if (fullMatch == null && deviceData[idx_model].toLowerCase().equals(DEVICE_MODEL)) {
+                    fullTx = tx;
+                    fullCorr = corr;
+                    fullConf = conf;
+                    fullMatch = deviceData;
+                }
+
+                if (stripMatch == null && conf > 1 && Utils.strippedModelEquals(deviceData[idx_model].toLowerCase(), DEVICE_MODEL)) {
+                    stripTx = tx;
+                    stripCorr = corr;
+                    stripConf = conf;
+                    stripMatch = deviceData;
+                }
                 oemTx += tx;
                 oemCorr += corr;
                 oemCount++;
@@ -549,6 +560,26 @@ public class MainActivity extends Activity{
             allTx += tx;
             allCorr += corr;
             allCount++;
+        }
+
+        // model match
+        if (fullMatch != null && (fullConf > 1 || stripMatch == null)) {
+            txPower = fullTx;
+            rssiCorrection = fullCorr;
+            log(String.format(Locale.getDefault(),
+                    "Using model-matched calibration data (confidence %d).\n > OEM: %s\n > Model: %s\n > TX_power: %d\n > RSSI_correction: %d",
+                    fullConf, DEVICE_OEM, DEVICE_MODEL, txPower, rssiCorrection));
+            return;
+        }
+
+        // Heuristics match
+        if (stripMatch != null) {
+            txPower = stripTx;
+            rssiCorrection = stripCorr;
+            log(String.format(Locale.getDefault(),
+                    "Using heuristically model-matched calibration data (confidence %d).\n > OEM: %s\n > Model: (original) %s -> (heuristics) %s\n > TX_power: %d\n > RSSI_correction: %d",
+                    stripConf, DEVICE_OEM, DEVICE_MODEL, stripMatch[idx_model].toLowerCase(), txPower, rssiCorrection));
+            return;
         }
 
         if (oemCount > 0) {

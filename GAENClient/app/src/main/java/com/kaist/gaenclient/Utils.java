@@ -220,4 +220,19 @@ public class Utils {
             return resultList;
         }
     }
+
+    @SuppressWarnings("StatementWithEmptyBody")
+    public static boolean strippedModelEquals(String model1, String model2) {
+        if (model1 == null || model2 == null)
+            return false;
+
+        int li1, li2;  // index of last integer occurence
+        for (li1 = model1.length() - 1; li1 >= 0 && !Character.isDigit(model1.charAt(li1)); li1--);
+        for (li2 = model2.length() - 1; li2 >= 0 && !Character.isDigit(model2.charAt(li2)); li2--);
+
+        return li1 >= 2 && li1 == li2 &&  // root model name at least 3 chars, length eq
+                model1.length() - 1 - li1 <= 3 &&  // stripped trailing chars at most 3
+                model2.length() - 1 - li2 <= 3 &&
+                model1.substring(0, li1 + 1).equals(model2.substring(0, li2 + 1));
+    }
 }

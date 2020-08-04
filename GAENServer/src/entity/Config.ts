@@ -11,6 +11,9 @@ export class Config extends BaseEntity {
     @Column("bigint", {nullable: false})
     SCAN_DURATION: string;
 
+    @Column("bigint", {nullable: false})
+    MAX_JITTER: string;
+
     // Server upload frequency in ms. Set to 0 for immediate upload after scan completion.
     @Column("bigint", {nullable: false})
     UPLOAD_PERIOD: string;

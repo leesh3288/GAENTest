@@ -74,6 +74,7 @@ public class MainActivity extends Activity{
     private long SCAN_PERIOD = Config.SCAN_PERIOD;
     private long SCAN_DURATION = Config.SCAN_DURATION;
     private long UPLOAD_PERIOD = Config.UPLOAD_PERIOD;
+    private long MAX_JITTER = Config.MAX_JITTER;
     private int SERVICE_UUID = Config.SERVICE_UUID;
     private ParcelUuid SERVICE_PARCEL_UUID = Utils.UUIDConvert.convertShortToParcelUuid(SERVICE_UUID);
     private byte PROTOCOL_VER = Config.PROTOCOL_VER;
@@ -648,7 +649,7 @@ public class MainActivity extends Activity{
             mBluetoothLeScanner.stopScan(mScanCallback);
             if (enabledScanning) {
                 sHandler = new Handler();
-                int jitter = (int) (Math.random() * 1.5 * 60 * 1000);   // 0 ~ 1.5 min jitter
+                int jitter = (int) (Math.random() * MAX_JITTER);   // 0 ~ 1.5 min jitter
                 sHandler.postDelayed(this::startScan, SCAN_PERIOD - SCAN_DURATION - jitter);
             }
             log("Stopped scanning.");
@@ -805,6 +806,7 @@ public class MainActivity extends Activity{
                     JSONObject config = new JSONObject(fetched);
                     SCAN_PERIOD = config.getLong("SCAN_PERIOD");
                     SCAN_DURATION = config.getLong("SCAN_DURATION");
+                    MAX_JITTER = config.getLong("MAX_JITTER");
                     UPLOAD_PERIOD = config.getLong("UPLOAD_PERIOD");
                     SERVICE_UUID = config.getInt("SERVICE_UUID");
                     SERVICE_PARCEL_UUID = Utils.UUIDConvert.convertShortToParcelUuid(SERVICE_UUID);

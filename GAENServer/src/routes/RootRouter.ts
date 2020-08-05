@@ -1,6 +1,6 @@
 import * as express from "express";
 import * as asyncHandler from "express-async-handler"
-import { Connection } from "typeorm";
+import { Connection, InsertResult } from "typeorm";
 import { Log } from "../entity/Log";
 import { Config } from "../entity/Config"
 
@@ -49,16 +49,21 @@ RootRouter.put('/log', asyncHandler(async (req, res, next) => {
         return;
     }
 
-    let savedLogs: Log[];
+    let savedLogs: InsertResult;
     try {
-        savedLogs = await db.manager.getRepository(Log).save(logs);
+        savedLogs = await db.manager.getRepository(Log)
+            .createQueryBuilder()
+            .insert()
+            .values(logs)
+            .useTransaction(true)
+            .execute();
     } catch (e) {
         res.status(400).send("Failed to save logs, check if data is well-formed.");
         console.log("Failed to save logs. Exception:");
         console.log(e);
         return;
     }
-    res.status(201).send("Saved " + savedLogs.length + " logs.");
+    res.status(201).send("Saved " + savedLogs.generatedMaps.length + " logs.");
 }));
 
 RootRouter.get('/logdb', asyncHandler(async (req, res, next) => {

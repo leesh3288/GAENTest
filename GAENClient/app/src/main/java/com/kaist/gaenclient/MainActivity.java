@@ -53,12 +53,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-/**
- *
- * @author dyoung
- * @author Matt Tyler
+/* Includes bluetooth permissions related code written by authors dyoung & Matt Tyler.
  */
-
 public class MainActivity extends Activity{
 	protected static final String TAG = "GAEN_Test";
 	private static final int REQUEST_FINE_LOCATION = 1;

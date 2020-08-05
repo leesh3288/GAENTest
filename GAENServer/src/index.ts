@@ -15,7 +15,7 @@ app.set('view engine', 'ejs');
 app.engine('html', ejs.renderFile);
 app.use(express.static('public'));
 
-app.use(bodyParser.json());
+app.use(bodyParser.json({'limit': '10mb'}));
 app.use(cors());
 
 const socketDict = {};

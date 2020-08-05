@@ -1,9 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, Index } from "typeorm";
-import { IsUUID, IsDate, IsInt, IsOptional, IsString } from "class-validator";
+import { IsDate, IsInt, IsOptional, IsString } from "class-validator";
 import { ValidationEntity } from "./ValidationEntity";
 
 @Entity({name: "logs"})
-@Index(["myId", "time", "logType"], { unique: true })
 export class Log extends ValidationEntity {
     @PrimaryGeneratedColumn()
     id: number;
@@ -18,36 +17,36 @@ export class Log extends ValidationEntity {
 
     @IsOptional()
     @IsInt()
-    @Column("int")
+    @Column("int", {default: null})
     logType?: number;
 
     @IsOptional()
     @IsString()
-    @Column("char", {length: 36})
+    @Column("char", {length: 36, default: null})
     otherId?: string;
 
     @IsOptional()
     @IsString()
-    @Column("char", {length: 100})
+    @Column("char", {length: 100, default: null})
     testId?: string;
 
     @IsOptional()
     @IsInt()
-    @Column("int")
+    @Column("int", {default: null})
     rssi?: number;
 
     @IsOptional()
     @IsInt()
-    @Column("int")
+    @Column("int", {default: null})
     rssiCorrection?: number;
 
     @IsOptional()
     @IsInt()
-    @Column("int")
+    @Column("int", {default: null})
     tx?: number;
 
     @IsOptional()
     @IsInt()
-    @Column("int")
+    @Column("int", {default: null})
     attenuation?: number;
 }

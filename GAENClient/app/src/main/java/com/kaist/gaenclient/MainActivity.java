@@ -52,6 +52,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.zip.GZIPOutputStream;
 
 /* Includes bluetooth permissions related code written by authors dyoung & Matt Tyler.
  */
@@ -754,7 +755,7 @@ public class MainActivity extends Activity{
                 }
 
                 String jsonMessage = jsonArray.toString();
-                log("uploadServer data: " + jsonMessage);
+                log("uploadServer data count: " + jsonArray.length());
 
                 HttpURLConnection c = null;
                 try {
@@ -762,17 +763,19 @@ public class MainActivity extends Activity{
                     c = (HttpURLConnection) u.openConnection();
                     c.setRequestMethod("PUT");
                     c.setRequestProperty("Content-Type", "application/json");
+                    c.setRequestProperty("Content-Encoding", "gzip");
                     c.setUseCaches(false);
                     c.setDefaultUseCaches(false);
                     c.setAllowUserInteraction(false);
                     c.setDoOutput(true);
                     c.setDoInput(true);
                     c.setConnectTimeout(2000);
-                    c.setReadTimeout(2000);
+                    c.setReadTimeout(10000);
 
-                    OutputStreamWriter wr = new OutputStreamWriter(c.getOutputStream());
+                    OutputStreamWriter wr = new OutputStreamWriter(new GZIPOutputStream(c.getOutputStream()));
                     wr.write(jsonMessage);
                     wr.flush();
+                    wr.close();
 
                     int status = c.getResponseCode();
 
@@ -825,7 +828,7 @@ public class MainActivity extends Activity{
             @Override
             public void run() {
                 try {
-                    String fetched = getURL("http://" + serverUrl + "/config");
+                    String fetched = getURL("http://" + serverUrl + "/config",  5000);
                     if (fetched == null) {
                         logError("Configuration fetch failed.");
                         return;
@@ -871,10 +874,6 @@ public class MainActivity extends Activity{
         };
         th.start();
         th.join();
-    }
-
-    private String getURL(String url) {
-        return getURL(url, 2000);
     }
 
     private String getURL(String url, int timeout) {

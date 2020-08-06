@@ -12,7 +12,6 @@ import io.socket.client.Socket;
 
 public class SocketManager {
     private Socket mSocket;
-    private String deviceName;
     private MainActivity mainActivity;
 
     public SocketManager(String deviceName, MainActivity mainActivity) {
@@ -22,8 +21,6 @@ public class SocketManager {
         } catch(URISyntaxException e) {
             e.printStackTrace();
         }
-        this.deviceName = deviceName;
-        this.mainActivity = mainActivity;
 
         // Socket event handler
         System.out.println(mSocket);
@@ -70,5 +67,12 @@ public class SocketManager {
             mainActivity.log("Stop experiment.");
             mainActivity.log("Experiment stopped.");
         });
+
+        this.mainActivity = mainActivity;
+    }
+
+    public void disconnectSocket() {
+        mSocket.disconnect();
+        mainActivity.log("Disconnected to server.");
     }
 }

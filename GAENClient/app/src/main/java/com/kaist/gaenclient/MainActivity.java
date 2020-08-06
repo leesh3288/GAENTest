@@ -13,7 +13,6 @@ import android.bluetooth.le.BluetoothLeAdvertiser;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
-import android.bluetooth.le.ScanRecord;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.content.DialogInterface;
@@ -40,9 +39,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -80,6 +77,9 @@ public class MainActivity extends Activity{
     private int scanMode = Config.scanMode;
     private String serverUrl = Config.serverUrl;
     private final UUID NAMESPACE_GAEN = Config.NAMESPACE_GAEN;
+
+    // Socket
+    private SocketManager mSocketManager;
 
     // Current test id
     private String testId;
@@ -300,11 +300,20 @@ public class MainActivity extends Activity{
 
         // Load calibration data
         loadCalibrationData();
-
-        // Socket connection
-        new SocketManager(deviceId, this);
 	}
 
+	@Override
+	public void onStart() {
+	    super.onStart();
+        // Socket connection
+        mSocketManager = new SocketManager(deviceId, this);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        mSocketManager.disconnectSocket();
+    }
 
     @Override
     public void onDestroy() {

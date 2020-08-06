@@ -12,6 +12,7 @@ import io.socket.client.Socket;
 
 public class SocketManager {
     private Socket mSocket;
+    private MainActivity mainActivity;
 
     public SocketManager(String deviceName, MainActivity mainActivity) {
         try {
@@ -66,9 +67,12 @@ public class SocketManager {
             mainActivity.log("Stop experiment.");
             mainActivity.log("Experiment stopped.");
         });
+
+        this.mainActivity = mainActivity;
     }
 
     public void disconnectSocket() {
         mSocket.disconnect();
+        mainActivity.log("Disconnected to server.");
     }
 }

@@ -2,7 +2,6 @@ package com.kaist.gaenclient;
 
 import android.bluetooth.le.AdvertiseSettings;
 import android.bluetooth.le.ScanSettings;
-import android.os.ParcelUuid;
 
 import java.util.UUID;
 

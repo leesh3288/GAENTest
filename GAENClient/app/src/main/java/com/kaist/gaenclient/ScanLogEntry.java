@@ -55,11 +55,11 @@ public class ScanLogEntry {
                 SystemClock.elapsedRealtime() +
                 result.getTimestampNanos() / 1000000;
         entry.logType = 0;  // TODO: field useful or not?
-        entry.otherId = new String(Arrays.copyOfRange(data, 0xb, 0x1b));
         entry.rssi = result.getRssi();
         entry.tx = data[0x1c];
         entry.attenuation = entry.tx - (entry.rssi + rssiCorrection);
         entry.rssiCorrection = rssiCorrection;
+        entry.otherId = (new String(Arrays.copyOfRange(data, 0xb, 0x1b))).replaceAll("\u0000.*", "");
 
         return entry;
     }

@@ -9,8 +9,12 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.AdvertiseSettings;
+import android.bluetooth.le.AdvertisingSet;
+import android.bluetooth.le.AdvertisingSetCallback;
+import android.bluetooth.le.AdvertisingSetParameters;
 import android.bluetooth.le.BluetoothLeAdvertiser;
 import android.bluetooth.le.BluetoothLeScanner;
+import android.bluetooth.le.PeriodicAdvertisingParameters;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
@@ -27,6 +31,7 @@ import android.view.View;
 import android.widget.CompoundButton;
 
 import androidx.databinding.DataBindingUtil;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.kaist.gaenclient.databinding.ActivityMainBinding;
 
@@ -51,6 +56,8 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.zip.GZIPOutputStream;
 
+import static java.lang.Math.max;
+
 /* Includes bluetooth permissions related code written by authors dyoung & Matt Tyler.
  */
 public class MainActivity extends Activity{
@@ -58,7 +65,7 @@ public class MainActivity extends Activity{
 	private static final int REQUEST_FINE_LOCATION = 1;
 	private static final int REQUEST_BACKGROUND_LOCATION = 2;
     private static final int REQUEST_ENABLE_BT = 1;
-    private String deviceId;
+    public String deviceId;
 
     private ActivityMainBinding mBinding;
     private Handler sHandler;
@@ -152,6 +159,11 @@ public class MainActivity extends Activity{
     // Scan results
     final List<ScanLogEntry> scanned = Collections.synchronizedList(new ArrayList<ScanLogEntry>());
 
+    // Log
+    private ArrayList<String> logArrayList = new ArrayList<>();
+    private RecyclerView.Adapter logAdapter;
+    private int maxLogs = 200;
+
     /**
      * Lifecycle
      */
@@ -235,9 +247,14 @@ public class MainActivity extends Activity{
         // Get bluetooth advertiser
         mBluetoothLeAdvertiser = mBluetoothAdapter.getBluetoothLeAdvertiser();
 
-        // Set listeners
+        // Set recyclerview and log adapter
         mBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
         mBinding.setActivity(this);
+        logAdapter = new LogAdapter(logArrayList);
+        mBinding.logRecyclerview.setAdapter(logAdapter);
+        mBinding.logRecyclerview.smoothScrollToPosition(max(logArrayList.size()-1,0));
+
+        // Set listeners
         mBinding.advertiseSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) { if(isChecked) {
@@ -278,7 +295,9 @@ public class MainActivity extends Activity{
         });
         mBinding.clearButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) { mBinding.logTextview.setText("");
+            public void onClick(View v) {
+                logArrayList.clear();
+                logAdapter.notifyDataSetChanged();
             }
         });
         mBinding.clearScanButton.setOnClickListener(new View.OnClickListener() {
@@ -461,6 +480,13 @@ public class MainActivity extends Activity{
                 .setTxPowerLevel(advertiseTxPower)
                 .build();
 
+        AdvertisingSetParameters setParams = new AdvertisingSetParameters.Builder()
+                .setInterval(400)
+                .setConnectable(true)
+                .setTxPowerLevel(advertiseTxPower)
+//                .setScannable(true)
+                .build();
+
         // Service data payload, as in GAEN protocol
         // RPI is just deviceId string
         byte[] RPI = deviceId.getBytes();
@@ -482,6 +508,7 @@ public class MainActivity extends Activity{
         Log.i(TAG, data.toString());
 
         mBluetoothLeAdvertiser.startAdvertising(settings, data, mAdvertiseCallback);
+//        mBluetoothLeAdvertiser.startAdvertisingSet(setParams,data,null,null,null,mAdvertisingSetCallback);
         log("Started advertising.");
     }
 
@@ -489,6 +516,7 @@ public class MainActivity extends Activity{
         if (mBluetoothLeAdvertiser != null) {
             enabledAdvertising = false;
             mBluetoothLeAdvertiser.stopAdvertising(mAdvertiseCallback);
+//            mBluetoothLeAdvertiser.stopAdvertisingSet(mAdvertisingSetCallback);
             log("Stopped advertising.");
         }
     }
@@ -703,7 +731,13 @@ public class MainActivity extends Activity{
      */
 
     public void log(String msg) {
-	    runOnUiThread(() -> mBinding.logTextview.setText(msg + "\n" + mBinding.logTextview.getText()));
+        runOnUiThread(() -> {
+            logArrayList.add(0,msg);
+//            logArrayList.add(0, String.valueOf(logArrayList.size()));
+            if(logArrayList.size() > maxLogs) logArrayList.remove(logArrayList.size()-1);
+            logAdapter.notifyDataSetChanged();
+        });
+//	    runOnUiThread(() -> mBinding.logTextview.setText( + "\n" + mBinding.logTextview.getText()));
     }
 
     public void logError(String msg) {

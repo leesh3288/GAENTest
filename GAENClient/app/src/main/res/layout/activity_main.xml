@@ -104,16 +104,11 @@
                 android:text="Clear Scan Log" />
         </LinearLayout>
 
-        <ScrollView
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/log_recyclerview"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <TextView
-                android:id="@+id/log_textview"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="asdf" />
-        </ScrollView>
+            android:layout_height="match_parent" />
 
     </LinearLayout>
 </layout>

@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId 'com.kaist.gaenclient'
-        minSdkVersion 23
+        minSdkVersion 26
         targetSdkVersion 29
     }
     buildTypes {

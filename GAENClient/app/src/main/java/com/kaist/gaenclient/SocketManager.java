@@ -45,18 +45,21 @@ public class SocketManager {
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-            try {
-                Log.i("Socket","start called");
-                mainActivity.clearLog();
-                mainActivity.fetchConfig();
+            Log.i("Socket","start called");
+            mainActivity.clearLog();
+//                mainActivity.fetchConfig();
+            if(mainActivity.deviceId.length() < 4) {
                 mainActivity.setAdvertise(true);
-                mainActivity.setScan(true);
-                mainActivity.log("Start experiment.");
-                mSocket.emit("start-success");
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                mSocket.emit("start-fail");
+            } else if(!mainActivity.deviceId.substring(0,4).equals("scan")) {
+                mainActivity.setAdvertise(true);
             }
+            if(mainActivity.deviceId.length() < 3) {
+                mainActivity.setScan(true);
+            } else if (!mainActivity.deviceId.substring(0,3).equals("adv")) {
+                mainActivity.setScan(true);
+            }
+            mainActivity.log("Start experiment.");
+            mSocket.emit("start-success");
         });
         mSocket.on("stop", args -> {
             Log.i("Socket","stop called");

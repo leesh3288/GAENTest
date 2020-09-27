@@ -305,6 +305,7 @@ public class MainActivity extends Activity{
             @Override
             public void onClick(View v) {
                 scanned.clear();
+                scanInstances.clear();
                 log("Cleared scan log pending for upload.");
             }
         });
@@ -715,7 +716,11 @@ public class MainActivity extends Activity{
             scansToAggregate = new ArrayList<>(scanning);
             scanning.clear();
         }
-        scanInstances.addAll(ScanInstance.fromScanResults(scansToAggregate, secondsSinceLastScan));
+        List<ScanInstance> newInstances = ScanInstance.fromScanResults(scansToAggregate, secondsSinceLastScan);
+        scanInstances.addAll(newInstances);
+        for (ScanInstance si: newInstances) {
+            log(si.toString());
+        }
 
         if (sHandler != null) {
             sHandler.removeCallbacksAndMessages(null);

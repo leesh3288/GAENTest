@@ -71,7 +71,7 @@ public class ScanInstance {
         for (int a: attenuations) {
             sum += Math.pow(10,(double)a/10);
         }
-        return 10*(int)Math.log10(sum/attenuations.size());
+        return (int)(10*Math.log10(sum/attenuations.size()));
     }
 
     public JSONObject getJSONObject() {
@@ -95,7 +95,7 @@ public class ScanInstance {
     @NonNull
     @Override
     public String toString() {
-        return "ScanLogEntry{" +
+        return "ScanInstance{" +
                 "myId=" + myId +
                 ", time=" + time +
                 ", otherId=" + otherId +

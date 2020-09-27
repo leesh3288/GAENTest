@@ -96,4 +96,12 @@ public class ScanLogEntry {
                 ", attenuation=" + attenuation +
                 '}';
     }
+
+    public String getOtherId() {
+        return otherId;
+    }
+
+    public String getTestId() {
+        return testId;
+    }
 }

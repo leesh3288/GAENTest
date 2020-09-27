@@ -9,12 +9,9 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.AdvertiseSettings;
-import android.bluetooth.le.AdvertisingSet;
-import android.bluetooth.le.AdvertisingSetCallback;
 import android.bluetooth.le.AdvertisingSetParameters;
 import android.bluetooth.le.BluetoothLeAdvertiser;
 import android.bluetooth.le.BluetoothLeScanner;
-import android.bluetooth.le.PeriodicAdvertisingParameters;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
@@ -143,6 +140,7 @@ public class MainActivity extends Activity{
                 return;
             log(entry.toString());
             scanned.add(entry);
+            scanning.add(entry);
         }
     };
 
@@ -158,6 +156,8 @@ public class MainActivity extends Activity{
 
     // Scan results
     final List<ScanLogEntry> scanned = Collections.synchronizedList(new ArrayList<ScanLogEntry>());
+    final List<ScanLogEntry> scanning = Collections.synchronizedList(new ArrayList<ScanLogEntry>());
+    final List<ScanInstance> scanInstances = Collections.synchronizedList(new ArrayList<ScanInstance>());
 
     // Log
     private ArrayList<String> logArrayList = new ArrayList<>();

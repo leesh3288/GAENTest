@@ -158,6 +158,7 @@ public class MainActivity extends Activity{
     final List<ScanLogEntry> scanned = Collections.synchronizedList(new ArrayList<ScanLogEntry>());
     final List<ScanLogEntry> scanning = Collections.synchronizedList(new ArrayList<ScanLogEntry>());
     final List<ScanInstance> scanInstances = Collections.synchronizedList(new ArrayList<ScanInstance>());
+    private int secondsSinceLastScan = 0;
 
     // Log
     private ArrayList<String> logArrayList = new ArrayList<>();
@@ -653,7 +654,9 @@ public class MainActivity extends Activity{
             logError("Permissions & bluetooth requirement not met");
         } else {
             log("Enabled scanning.");
-            startScan();
+            sHandler = new Handler();
+            secondsSinceLastScan = (int) (Math.random() * SCAN_PERIOD);
+            sHandler.postDelayed(this::startScan, secondsSinceLastScan);
         }
     }
 
@@ -706,6 +709,14 @@ public class MainActivity extends Activity{
 
     // Stop scanning
     private void stopScan() {
+        // Aggregating ScanLogEntries
+        List<ScanLogEntry> scansToAggregate;
+        synchronized (scanning) {
+            scansToAggregate = new ArrayList<>(scanning);
+            scanning.clear();
+        }
+        scanInstances.addAll(ScanInstance.fromScanResults(scansToAggregate, secondsSinceLastScan));
+
         if (sHandler != null) {
             sHandler.removeCallbacksAndMessages(null);
         }
@@ -715,6 +726,7 @@ public class MainActivity extends Activity{
             if (enabledScanning) {
                 sHandler = new Handler();
                 int jitter = (int) (Math.random() * MAX_JITTER);   // 0 ~ 1.5 min jitter
+                secondsSinceLastScan = (int)(SCAN_PERIOD) - jitter;
                 sHandler.postDelayed(this::startScan, SCAN_PERIOD - SCAN_DURATION - jitter);
             }
             log("Stopped scanning.");
@@ -724,6 +736,8 @@ public class MainActivity extends Activity{
             logError("Failed to stop scanning. mScanning: " + mScanning + ", mBluetoothAdapter: " +mBluetoothAdapter + ", isEnables: " + mBluetoothAdapter.isEnabled() + ", mBleutoothLeScanner: " + mBluetoothLeScanner);
         }
         mScanning = false;
+
+
     }
 
     /**

@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, Index } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 import { IsDate, IsInt, IsOptional, IsString } from "class-validator";
 import { ValidationEntity } from "./ValidationEntity";
 

@@ -34,7 +34,7 @@ createConnection().then(async db => {
     defaultConfig.SERVICE_UUID = 0xfd6f;
     defaultConfig.advertiseMode = AdvertiseSettings.ADVERTISE_MODE_BALANCED;
     defaultConfig.advertiseTxPower = AdvertiseSettings.ADVERTISE_TX_POWER_LOW;
-    defaultConfig.scanMode = ScanSettings.SCAN_MODE_BALANCED;
+    defaultConfig.scanMode = ScanSettings.SCAN_MODE_LOW_LATENCY;
 
     await db.manager.getRepository(Config)
         .createQueryBuilder()

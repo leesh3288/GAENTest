@@ -9,6 +9,7 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.AdvertiseSettings;
+import android.bluetooth.le.AdvertisingSetParameters;
 import android.bluetooth.le.BluetoothLeAdvertiser;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
@@ -27,6 +28,7 @@ import android.view.View;
 import android.widget.CompoundButton;
 
 import androidx.databinding.DataBindingUtil;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.kaist.gaenclient.databinding.ActivityMainBinding;
 
@@ -51,6 +53,8 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.zip.GZIPOutputStream;
 
+import static java.lang.Math.max;
+
 /* Includes bluetooth permissions related code written by authors dyoung & Matt Tyler.
  */
 public class MainActivity extends Activity{
@@ -58,7 +62,7 @@ public class MainActivity extends Activity{
 	private static final int REQUEST_FINE_LOCATION = 1;
 	private static final int REQUEST_BACKGROUND_LOCATION = 2;
     private static final int REQUEST_ENABLE_BT = 1;
-    private String deviceId;
+    public String deviceId;
 
     private ActivityMainBinding mBinding;
     private Handler sHandler;
@@ -136,6 +140,7 @@ public class MainActivity extends Activity{
                 return;
             log(entry.toString());
             scanned.add(entry);
+            scanning.add(entry);
         }
     };
 
@@ -148,9 +153,18 @@ public class MainActivity extends Activity{
     private boolean enabledScanning = false;
     private boolean enabledAdvertising = false;
     private boolean enabledUploading = false;
+    private int scanChannelCounter = 0;
 
     // Scan results
     final List<ScanLogEntry> scanned = Collections.synchronizedList(new ArrayList<ScanLogEntry>());
+    final List<ScanLogEntry> scanning = Collections.synchronizedList(new ArrayList<ScanLogEntry>());
+    final List<ScanInstance> scanInstances = Collections.synchronizedList(new ArrayList<ScanInstance>());
+    private int secondsSinceLastScan = 0;
+
+    // Log
+    private ArrayList<String> logArrayList = new ArrayList<>();
+    private RecyclerView.Adapter logAdapter;
+    private int maxLogs = 200;
 
     /**
      * Lifecycle
@@ -235,9 +249,14 @@ public class MainActivity extends Activity{
         // Get bluetooth advertiser
         mBluetoothLeAdvertiser = mBluetoothAdapter.getBluetoothLeAdvertiser();
 
-        // Set listeners
+        // Set recyclerview and log adapter
         mBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
         mBinding.setActivity(this);
+        logAdapter = new LogAdapter(logArrayList);
+        mBinding.logRecyclerview.setAdapter(logAdapter);
+        mBinding.logRecyclerview.smoothScrollToPosition(max(logArrayList.size()-1,0));
+
+        // Set listeners
         mBinding.advertiseSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) { if(isChecked) {
@@ -278,13 +297,16 @@ public class MainActivity extends Activity{
         });
         mBinding.clearButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) { mBinding.logTextview.setText("");
+            public void onClick(View v) {
+                logArrayList.clear();
+                logAdapter.notifyDataSetChanged();
             }
         });
         mBinding.clearScanButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 scanned.clear();
+                scanInstances.clear();
                 log("Cleared scan log pending for upload.");
             }
         });
@@ -461,6 +483,13 @@ public class MainActivity extends Activity{
                 .setTxPowerLevel(advertiseTxPower)
                 .build();
 
+        AdvertisingSetParameters setParams = new AdvertisingSetParameters.Builder()
+                .setInterval(400)
+                .setConnectable(true)
+                .setTxPowerLevel(advertiseTxPower)
+//                .setScannable(true)
+                .build();
+
         // Service data payload, as in GAEN protocol
         // RPI is just deviceId string
         byte[] RPI = deviceId.getBytes();
@@ -482,6 +511,7 @@ public class MainActivity extends Activity{
         Log.i(TAG, data.toString());
 
         mBluetoothLeAdvertiser.startAdvertising(settings, data, mAdvertiseCallback);
+//        mBluetoothLeAdvertiser.startAdvertisingSet(setParams,data,null,null,null,mAdvertisingSetCallback);
         log("Started advertising.");
     }
 
@@ -489,6 +519,7 @@ public class MainActivity extends Activity{
         if (mBluetoothLeAdvertiser != null) {
             enabledAdvertising = false;
             mBluetoothLeAdvertiser.stopAdvertising(mAdvertiseCallback);
+//            mBluetoothLeAdvertiser.stopAdvertisingSet(mAdvertisingSetCallback);
             log("Stopped advertising.");
         }
     }
@@ -624,8 +655,11 @@ public class MainActivity extends Activity{
             enabledScanning = false;
             logError("Permissions & bluetooth requirement not met");
         } else {
+            scanChannelCounter = 0;
             log("Enabled scanning.");
-            startScan();
+            sHandler = new Handler();
+            secondsSinceLastScan = (int) (Math.random() * SCAN_PERIOD);
+            sHandler.postDelayed(this::startScan, secondsSinceLastScan);
         }
     }
 
@@ -663,14 +697,14 @@ public class MainActivity extends Activity{
         ScanSettings settings = new ScanSettings.Builder()
                 .setScanMode(scanMode)
                 .setReportDelay(0)
-                .setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
+                .setMatchMode(ScanSettings.MATCH_MODE_STICKY)
                 .setNumOfMatches(ScanSettings.MATCH_NUM_MAX_ADVERTISEMENT)
                 .build();
 
         mBluetoothLeScanner.startScan(filters, settings, mScanCallback);
 
         sHandler = new Handler();
-        sHandler.postDelayed(this::stopScan, SCAN_DURATION);
+        sHandler.postDelayed(this::stopScan, SCAN_DURATION / 3);
 
         mScanning = true;
         log("Started scanning.");
@@ -680,22 +714,45 @@ public class MainActivity extends Activity{
     private void stopScan() {
         if (sHandler != null) {
             sHandler.removeCallbacksAndMessages(null);
+            sHandler = null;
         }
-        sHandler = null;
         if (mScanning && mBluetoothAdapter != null && mBluetoothAdapter.isEnabled() && mBluetoothLeScanner != null) {
             mBluetoothLeScanner.stopScan(mScanCallback);
             if (enabledScanning) {
-                sHandler = new Handler();
-                int jitter = (int) (Math.random() * MAX_JITTER);   // 0 ~ 1.5 min jitter
-                sHandler.postDelayed(this::startScan, SCAN_PERIOD - SCAN_DURATION - jitter);
+                if (++scanChannelCounter < 3) {
+                    log("Scanning next channel...");
+                    mScanning = false;
+                    startScan();
+                    return;  // aggregate into ScanInstance after 3 cycles pass
+                } else {
+                    scanChannelCounter = 0;
+                    sHandler = new Handler();
+                    int jitter = (int) (Math.random() * MAX_JITTER);   // 0 ~ 1.5 min jitter
+                    secondsSinceLastScan = (int) (SCAN_PERIOD) - jitter;
+                    sHandler.postDelayed(this::startScan, SCAN_PERIOD - SCAN_DURATION - jitter);
+                    log("Scan cycle complete.");
+                }
+            } else {
+                log("Stopped scanning.");
             }
-            log("Stopped scanning.");
         } else if (!mScanning) {
             log("Failed to stop scanning. The device is not scanning now.");
         } else {
             logError("Failed to stop scanning. mScanning: " + mScanning + ", mBluetoothAdapter: " +mBluetoothAdapter + ", isEnables: " + mBluetoothAdapter.isEnabled() + ", mBleutoothLeScanner: " + mBluetoothLeScanner);
         }
         mScanning = false;
+
+        // Aggregating ScanLogEntries
+        List<ScanLogEntry> scansToAggregate;
+        synchronized (scanning) {
+            scansToAggregate = new ArrayList<>(scanning);
+            scanning.clear();
+        }
+        List<ScanInstance> newInstances = ScanInstance.fromScanResults(scansToAggregate, secondsSinceLastScan);
+        scanInstances.addAll(newInstances);
+        for (ScanInstance si: newInstances) {
+            log(si.toString());
+        }
     }
 
     /**
@@ -703,7 +760,13 @@ public class MainActivity extends Activity{
      */
 
     public void log(String msg) {
-	    runOnUiThread(() -> mBinding.logTextview.setText(msg + "\n" + mBinding.logTextview.getText()));
+        runOnUiThread(() -> {
+            logArrayList.add(0,msg);
+//            logArrayList.add(0, String.valueOf(logArrayList.size()));
+            if(logArrayList.size() > maxLogs) logArrayList.remove(logArrayList.size()-1);
+            logAdapter.notifyDataSetChanged();
+        });
+//	    runOnUiThread(() -> mBinding.logTextview.setText( + "\n" + mBinding.logTextview.getText()));
     }
 
     public void logError(String msg) {
@@ -736,98 +799,104 @@ public class MainActivity extends Activity{
         uHandler.postDelayed(this::periodicUpload, UPLOAD_PERIOD);
     }
 
+    public <T extends IJsonConvertible> void uploadConvertibles(String endpoint, List<T> objects) {
+        log("uploadConvertibles called for endpoint " + endpoint);
+
+        List<T> toUpload;
+        synchronized (objects) {
+            toUpload = new ArrayList<T>(objects);
+            objects.clear();
+        }
+        if (toUpload.size() == 0) {
+            log("No scan results to upload.");
+            return;
+        }
+
+        JSONArray jsonArray = new JSONArray();
+        for (T entry: toUpload) {
+            JSONObject jsonObject = entry.getJSONObject();
+            if (jsonObject != null)
+                jsonArray.put(jsonObject);
+        }
+        if (jsonArray.length() == 0) {
+            log("No valid scan results to upload.");
+            return;
+        }
+
+        String jsonMessage = jsonArray.toString();
+        log("uploadServer data count: " + jsonArray.length());
+
+        HttpURLConnection c = null;
+        try {
+            URL u = new URL("http://" + serverUrl + endpoint);
+            c = (HttpURLConnection) u.openConnection();
+            c.setRequestMethod("PUT");
+            c.setRequestProperty("Content-Type", "application/json");
+            c.setRequestProperty("Content-Encoding", "gzip");
+            c.setUseCaches(false);
+            c.setDefaultUseCaches(false);
+            c.setAllowUserInteraction(false);
+            c.setDoOutput(true);
+            c.setDoInput(true);
+            c.setConnectTimeout(2000);
+            c.setReadTimeout(10000);
+
+            OutputStreamWriter wr = new OutputStreamWriter(new GZIPOutputStream(c.getOutputStream()));
+            wr.write(jsonMessage);
+            wr.flush();
+            wr.close();
+
+            int status = c.getResponseCode();
+
+            if (status == 200 || status == 201) {
+                StringBuilder sb = new StringBuilder();
+                InputStream is = c.getInputStream();
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                    String result;
+                    while ((result = br.readLine()) != null) {
+                        sb.append(result).append("\n");
+                    }
+                }
+                log("uploadServer success, response: " + sb.toString());
+            } else {
+                StringBuilder sb = new StringBuilder();
+                InputStream es = c.getErrorStream();
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(es, StandardCharsets.UTF_8))) {
+                    String result;
+                    while ((result = br.readLine()) != null) {
+                        sb.append(result).append("\n");
+                    }
+                }
+                logError("uploadServer failed (" + status + "), response: " + sb.toString());
+                objects.addAll(toUpload);  // reinsert data
+            }
+        } catch (SocketTimeoutException e) {
+            logError("uploadServer timed out, data reinserted for later upload.");
+            e.printStackTrace();
+            objects.addAll(toUpload);
+        } catch (IOException e) {
+            logError("uploadServer IOException raised, data reinserted for later upload.");
+            e.printStackTrace();
+            objects.addAll(toUpload);
+        } finally {
+            if (c != null) {
+                try {
+                    c.disconnect();
+                } catch (Exception e) {
+                    logError("uploadServer exception caught while disconnecting.");
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
     public void uploadServer() {
         new Thread() {
             @Override
             public void run() {
                 log("uploadServer called.");
-
-                List<ScanLogEntry> scansToUpload;
-                synchronized (scanned) {
-                    scansToUpload = new ArrayList<ScanLogEntry>(scanned);
-                    scanned.clear();
-                }
-                if (scansToUpload.size() == 0) {
-                    log("No scan results to upload.");
-                    return;
-                }
-
-                JSONArray jsonArray = new JSONArray();
-                for (ScanLogEntry entry: scansToUpload) {
-                    JSONObject jsonObject = entry.getJSONObject();
-                    if (jsonObject != null)
-                        jsonArray.put(jsonObject);
-                }
-                if (jsonArray.length() == 0) {
-                    log("No valid scan results to upload.");
-                    return;
-                }
-
-                String jsonMessage = jsonArray.toString();
-                log("uploadServer data count: " + jsonArray.length());
-
-                HttpURLConnection c = null;
-                try {
-                    URL u = new URL("http://" + serverUrl + "/log");
-                    c = (HttpURLConnection) u.openConnection();
-                    c.setRequestMethod("PUT");
-                    c.setRequestProperty("Content-Type", "application/json");
-                    c.setRequestProperty("Content-Encoding", "gzip");
-                    c.setUseCaches(false);
-                    c.setDefaultUseCaches(false);
-                    c.setAllowUserInteraction(false);
-                    c.setDoOutput(true);
-                    c.setDoInput(true);
-                    c.setConnectTimeout(2000);
-                    c.setReadTimeout(10000);
-
-                    OutputStreamWriter wr = new OutputStreamWriter(new GZIPOutputStream(c.getOutputStream()));
-                    wr.write(jsonMessage);
-                    wr.flush();
-                    wr.close();
-
-                    int status = c.getResponseCode();
-
-                    if (status == 200 || status == 201) {
-                        StringBuilder sb = new StringBuilder();
-                        InputStream is = c.getInputStream();
-                        try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-                            String result;
-                            while ((result = br.readLine()) != null) {
-                                sb.append(result).append("\n");
-                            }
-                        }
-                        log("uploadServer success, response: " + sb.toString());
-                    } else {
-                        StringBuilder sb = new StringBuilder();
-                        InputStream es = c.getErrorStream();
-                        try (BufferedReader br = new BufferedReader(new InputStreamReader(es, StandardCharsets.UTF_8))) {
-                            String result;
-                            while ((result = br.readLine()) != null) {
-                                sb.append(result).append("\n");
-                            }
-                        }
-                        logError("uploadServer failed (" + status + "), response: " + sb.toString());
-                        scanned.addAll(scansToUpload);  // reinsert data
-                    }
-                } catch (SocketTimeoutException e) {
-                    logError("uploadServer timed out, data reinserted for later upload.");
-                    e.printStackTrace();
-                    scanned.addAll(scansToUpload);
-                } catch (IOException e) {
-                    logError("uploadServer IOException raised, data reinserted for later upload.");
-                    e.printStackTrace();
-                    scanned.addAll(scansToUpload);
-                } finally {
-                    if (c != null) {
-                        try {
-                            c.disconnect();
-                        } catch (Exception e) {
-                            logError("uploadServer exception caught while disconnecting.");
-                            e.printStackTrace();
-                        }
-                    }
-                }
+                uploadConvertibles("/log", scanned);
+                uploadConvertibles("/log_si", scanInstances);
             }
         }.start();
     }

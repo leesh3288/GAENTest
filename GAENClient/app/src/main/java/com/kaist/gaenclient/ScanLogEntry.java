@@ -12,7 +12,7 @@ import org.json.JSONObject;
 import java.util.Arrays;
 import java.util.UUID;
 
-public class ScanLogEntry {
+public class ScanLogEntry implements IJsonConvertible {
     private String testId;
     private String myId;
     private long time;
@@ -95,5 +95,21 @@ public class ScanLogEntry {
                 ", tx=" + tx +
                 ", attenuation=" + attenuation +
                 '}';
+    }
+
+    public String getOtherId() {
+        return otherId;
+    }
+    public String getMyId() {
+        return myId;
+    }
+    public String getTestId() {
+        return testId;
+    }
+    public long getTime() {
+        return time;
+    }
+    public int getAttenuation() {
+        return attenuation;
     }
 }

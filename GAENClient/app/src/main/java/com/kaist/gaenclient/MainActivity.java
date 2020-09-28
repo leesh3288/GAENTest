@@ -695,10 +695,12 @@ public class MainActivity extends Activity{
         ScanSettings settings = new ScanSettings.Builder()
                 .setScanMode(scanMode)
                 .setReportDelay(0)
-                .setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
+                .setMatchMode(ScanSettings.MATCH_MODE_STICKY)
                 .setNumOfMatches(ScanSettings.MATCH_NUM_MAX_ADVERTISEMENT)
                 .build();
 
+        // TODO: stop & start scans, dividing a single scan into 3 scan starts to scan all 3 channels
+        // https://github.com/google/exposure-notifications-internals/blob/main/exposurenotification/src/main/java/com/google/samples/exposurenotification/ble/scanner/BleScannerImpl.java#L218
         mBluetoothLeScanner.startScan(filters, settings, mScanCallback);
 
         sHandler = new Handler();

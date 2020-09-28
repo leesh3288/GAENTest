@@ -789,98 +789,104 @@ public class MainActivity extends Activity{
         uHandler.postDelayed(this::periodicUpload, UPLOAD_PERIOD);
     }
 
+    public <T extends IJsonConvertible> void uploadConvertibles(String endpoint, List<T> objects) {
+        log("uploadConvertibles called for endpoint " + endpoint);
+
+        List<T> toUpload;
+        synchronized (objects) {
+            toUpload = new ArrayList<T>(objects);
+            objects.clear();
+        }
+        if (toUpload.size() == 0) {
+            log("No scan results to upload.");
+            return;
+        }
+
+        JSONArray jsonArray = new JSONArray();
+        for (T entry: toUpload) {
+            JSONObject jsonObject = entry.getJSONObject();
+            if (jsonObject != null)
+                jsonArray.put(jsonObject);
+        }
+        if (jsonArray.length() == 0) {
+            log("No valid scan results to upload.");
+            return;
+        }
+
+        String jsonMessage = jsonArray.toString();
+        log("uploadServer data count: " + jsonArray.length());
+
+        HttpURLConnection c = null;
+        try {
+            URL u = new URL("http://" + serverUrl + endpoint);
+            c = (HttpURLConnection) u.openConnection();
+            c.setRequestMethod("PUT");
+            c.setRequestProperty("Content-Type", "application/json");
+            c.setRequestProperty("Content-Encoding", "gzip");
+            c.setUseCaches(false);
+            c.setDefaultUseCaches(false);
+            c.setAllowUserInteraction(false);
+            c.setDoOutput(true);
+            c.setDoInput(true);
+            c.setConnectTimeout(2000);
+            c.setReadTimeout(10000);
+
+            OutputStreamWriter wr = new OutputStreamWriter(new GZIPOutputStream(c.getOutputStream()));
+            wr.write(jsonMessage);
+            wr.flush();
+            wr.close();
+
+            int status = c.getResponseCode();
+
+            if (status == 200 || status == 201) {
+                StringBuilder sb = new StringBuilder();
+                InputStream is = c.getInputStream();
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                    String result;
+                    while ((result = br.readLine()) != null) {
+                        sb.append(result).append("\n");
+                    }
+                }
+                log("uploadServer success, response: " + sb.toString());
+            } else {
+                StringBuilder sb = new StringBuilder();
+                InputStream es = c.getErrorStream();
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(es, StandardCharsets.UTF_8))) {
+                    String result;
+                    while ((result = br.readLine()) != null) {
+                        sb.append(result).append("\n");
+                    }
+                }
+                logError("uploadServer failed (" + status + "), response: " + sb.toString());
+                objects.addAll(toUpload);  // reinsert data
+            }
+        } catch (SocketTimeoutException e) {
+            logError("uploadServer timed out, data reinserted for later upload.");
+            e.printStackTrace();
+            objects.addAll(toUpload);
+        } catch (IOException e) {
+            logError("uploadServer IOException raised, data reinserted for later upload.");
+            e.printStackTrace();
+            objects.addAll(toUpload);
+        } finally {
+            if (c != null) {
+                try {
+                    c.disconnect();
+                } catch (Exception e) {
+                    logError("uploadServer exception caught while disconnecting.");
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
     public void uploadServer() {
         new Thread() {
             @Override
             public void run() {
                 log("uploadServer called.");
-
-                List<ScanLogEntry> scansToUpload;
-                synchronized (scanned) {
-                    scansToUpload = new ArrayList<ScanLogEntry>(scanned);
-                    scanned.clear();
-                }
-                if (scansToUpload.size() == 0) {
-                    log("No scan results to upload.");
-                    return;
-                }
-
-                JSONArray jsonArray = new JSONArray();
-                for (ScanLogEntry entry: scansToUpload) {
-                    JSONObject jsonObject = entry.getJSONObject();
-                    if (jsonObject != null)
-                        jsonArray.put(jsonObject);
-                }
-                if (jsonArray.length() == 0) {
-                    log("No valid scan results to upload.");
-                    return;
-                }
-
-                String jsonMessage = jsonArray.toString();
-                log("uploadServer data count: " + jsonArray.length());
-
-                HttpURLConnection c = null;
-                try {
-                    URL u = new URL("http://" + serverUrl + "/log");
-                    c = (HttpURLConnection) u.openConnection();
-                    c.setRequestMethod("PUT");
-                    c.setRequestProperty("Content-Type", "application/json");
-                    c.setRequestProperty("Content-Encoding", "gzip");
-                    c.setUseCaches(false);
-                    c.setDefaultUseCaches(false);
-                    c.setAllowUserInteraction(false);
-                    c.setDoOutput(true);
-                    c.setDoInput(true);
-                    c.setConnectTimeout(2000);
-                    c.setReadTimeout(10000);
-
-                    OutputStreamWriter wr = new OutputStreamWriter(new GZIPOutputStream(c.getOutputStream()));
-                    wr.write(jsonMessage);
-                    wr.flush();
-                    wr.close();
-
-                    int status = c.getResponseCode();
-
-                    if (status == 200 || status == 201) {
-                        StringBuilder sb = new StringBuilder();
-                        InputStream is = c.getInputStream();
-                        try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-                            String result;
-                            while ((result = br.readLine()) != null) {
-                                sb.append(result).append("\n");
-                            }
-                        }
-                        log("uploadServer success, response: " + sb.toString());
-                    } else {
-                        StringBuilder sb = new StringBuilder();
-                        InputStream es = c.getErrorStream();
-                        try (BufferedReader br = new BufferedReader(new InputStreamReader(es, StandardCharsets.UTF_8))) {
-                            String result;
-                            while ((result = br.readLine()) != null) {
-                                sb.append(result).append("\n");
-                            }
-                        }
-                        logError("uploadServer failed (" + status + "), response: " + sb.toString());
-                        scanned.addAll(scansToUpload);  // reinsert data
-                    }
-                } catch (SocketTimeoutException e) {
-                    logError("uploadServer timed out, data reinserted for later upload.");
-                    e.printStackTrace();
-                    scanned.addAll(scansToUpload);
-                } catch (IOException e) {
-                    logError("uploadServer IOException raised, data reinserted for later upload.");
-                    e.printStackTrace();
-                    scanned.addAll(scansToUpload);
-                } finally {
-                    if (c != null) {
-                        try {
-                            c.disconnect();
-                        } catch (Exception e) {
-                            logError("uploadServer exception caught while disconnecting.");
-                            e.printStackTrace();
-                        }
-                    }
-                }
+                uploadConvertibles("/log", scanned);
+                uploadConvertibles("/log_si", scanInstances);
             }
         }.start();
     }

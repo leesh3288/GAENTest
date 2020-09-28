@@ -10,7 +10,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
-public class ScanInstance {
+public class ScanInstance implements IJsonConvertible {
     private String testId;
     private String myId;
     private long time;

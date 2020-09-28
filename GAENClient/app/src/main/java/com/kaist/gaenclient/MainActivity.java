@@ -153,6 +153,7 @@ public class MainActivity extends Activity{
     private boolean enabledScanning = false;
     private boolean enabledAdvertising = false;
     private boolean enabledUploading = false;
+    private int scanChannelCounter = 0;
 
     // Scan results
     final List<ScanLogEntry> scanned = Collections.synchronizedList(new ArrayList<ScanLogEntry>());
@@ -654,6 +655,7 @@ public class MainActivity extends Activity{
             enabledScanning = false;
             logError("Permissions & bluetooth requirement not met");
         } else {
+            scanChannelCounter = 0;
             log("Enabled scanning.");
             sHandler = new Handler();
             secondsSinceLastScan = (int) (Math.random() * SCAN_PERIOD);
@@ -699,12 +701,10 @@ public class MainActivity extends Activity{
                 .setNumOfMatches(ScanSettings.MATCH_NUM_MAX_ADVERTISEMENT)
                 .build();
 
-        // TODO: stop & start scans, dividing a single scan into 3 scan starts to scan all 3 channels
-        // https://github.com/google/exposure-notifications-internals/blob/main/exposurenotification/src/main/java/com/google/samples/exposurenotification/ble/scanner/BleScannerImpl.java#L218
         mBluetoothLeScanner.startScan(filters, settings, mScanCallback);
 
         sHandler = new Handler();
-        sHandler.postDelayed(this::stopScan, SCAN_DURATION);
+        sHandler.postDelayed(this::stopScan, SCAN_DURATION / 3);
 
         mScanning = true;
         log("Started scanning.");
@@ -712,6 +712,36 @@ public class MainActivity extends Activity{
 
     // Stop scanning
     private void stopScan() {
+        if (sHandler != null) {
+            sHandler.removeCallbacksAndMessages(null);
+            sHandler = null;
+        }
+        if (mScanning && mBluetoothAdapter != null && mBluetoothAdapter.isEnabled() && mBluetoothLeScanner != null) {
+            mBluetoothLeScanner.stopScan(mScanCallback);
+            if (enabledScanning) {
+                if (++scanChannelCounter < 3) {
+                    log("Scanning next channel...");
+                    mScanning = false;
+                    startScan();
+                    return;  // aggregate into ScanInstance after 3 cycles pass
+                } else {
+                    scanChannelCounter = 0;
+                    sHandler = new Handler();
+                    int jitter = (int) (Math.random() * MAX_JITTER);   // 0 ~ 1.5 min jitter
+                    secondsSinceLastScan = (int) (SCAN_PERIOD) - jitter;
+                    sHandler.postDelayed(this::startScan, SCAN_PERIOD - SCAN_DURATION - jitter);
+                    log("Scan cycle complete.");
+                }
+            } else {
+                log("Stopped scanning.");
+            }
+        } else if (!mScanning) {
+            log("Failed to stop scanning. The device is not scanning now.");
+        } else {
+            logError("Failed to stop scanning. mScanning: " + mScanning + ", mBluetoothAdapter: " +mBluetoothAdapter + ", isEnables: " + mBluetoothAdapter.isEnabled() + ", mBleutoothLeScanner: " + mBluetoothLeScanner);
+        }
+        mScanning = false;
+
         // Aggregating ScanLogEntries
         List<ScanLogEntry> scansToAggregate;
         synchronized (scanning) {
@@ -723,28 +753,6 @@ public class MainActivity extends Activity{
         for (ScanInstance si: newInstances) {
             log(si.toString());
         }
-
-        if (sHandler != null) {
-            sHandler.removeCallbacksAndMessages(null);
-        }
-        sHandler = null;
-        if (mScanning && mBluetoothAdapter != null && mBluetoothAdapter.isEnabled() && mBluetoothLeScanner != null) {
-            mBluetoothLeScanner.stopScan(mScanCallback);
-            if (enabledScanning) {
-                sHandler = new Handler();
-                int jitter = (int) (Math.random() * MAX_JITTER);   // 0 ~ 1.5 min jitter
-                secondsSinceLastScan = (int)(SCAN_PERIOD) - jitter;
-                sHandler.postDelayed(this::startScan, SCAN_PERIOD - SCAN_DURATION - jitter);
-            }
-            log("Stopped scanning.");
-        } else if (!mScanning) {
-            log("Failed to stop scanning. The device is not scanning now.");
-        } else {
-            logError("Failed to stop scanning. mScanning: " + mScanning + ", mBluetoothAdapter: " +mBluetoothAdapter + ", isEnables: " + mBluetoothAdapter.isEnabled() + ", mBleutoothLeScanner: " + mBluetoothLeScanner);
-        }
-        mScanning = false;
-
-
     }
 
     /**

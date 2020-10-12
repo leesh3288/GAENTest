@@ -80,6 +80,7 @@ public class MainActivity extends Activity{
     private int advertiseTxPower = Config.advertiseTxPower;
     private int scanMode = Config.scanMode;
     private String serverUrl = Config.serverUrl;
+    private boolean initJitter = Config.initJitter;
     private final UUID NAMESPACE_GAEN = Config.NAMESPACE_GAEN;
 
     // Socket
@@ -658,7 +659,11 @@ public class MainActivity extends Activity{
             scanChannelCounter = 0;
             log("Enabled scanning.");
             sHandler = new Handler();
-            secondsSinceLastScan = (int) (Math.random() * SCAN_PERIOD);
+            if (initJitter) {
+                secondsSinceLastScan = (int) (Math.random() * SCAN_PERIOD);
+            } else {
+                secondsSinceLastScan = 0;
+            }
             sHandler.postDelayed(this::startScan, secondsSinceLastScan);
         }
     }
@@ -922,6 +927,7 @@ public class MainActivity extends Activity{
                     advertiseMode = config.getInt("advertiseMode");
                     advertiseTxPower = config.getInt("advertiseTxPower");
                     scanMode = config.getInt("scanMode");
+                    initJitter = config.getBoolean("initJitter");
                 } catch (JSONException e) {
                     logError("JSONException while parsing config.");
                     e.printStackTrace();

@@ -167,6 +167,9 @@ public class MainActivity extends Activity{
     private RecyclerView.Adapter logAdapter;
     private int maxLogs = 200;
 
+    // General Log
+    final List<GeneralLogEntry> genLogs = Collections.synchronizedList(new ArrayList<GeneralLogEntry>());
+
     /**
      * Lifecycle
      */
@@ -771,11 +774,20 @@ public class MainActivity extends Activity{
             if(logArrayList.size() > maxLogs) logArrayList.remove(logArrayList.size()-1);
             logAdapter.notifyDataSetChanged();
         });
+        logGen(msg);
 //	    runOnUiThread(() -> mBinding.logTextview.setText( + "\n" + mBinding.logTextview.getText()));
     }
 
     public void logError(String msg) {
         log("Error: " + msg);
+    }
+
+    public void logGen(String msg) {
+        GeneralLogEntry gle = GeneralLogEntry.createLog(testId,deviceId,msg);
+        if (gle == null) {
+            return;
+        }
+        genLogs.add(gle);
     }
 
     /**
@@ -813,7 +825,7 @@ public class MainActivity extends Activity{
             objects.clear();
         }
         if (toUpload.size() == 0) {
-            log("No scan results to upload.");
+            log("No scan results or logs to upload.");
             return;
         }
 
@@ -902,6 +914,7 @@ public class MainActivity extends Activity{
                 log("uploadServer called.");
                 uploadConvertibles("/log", scanned);
                 uploadConvertibles("/log_si", scanInstances);
+                uploadConvertibles("/log_gen", genLogs);
             }
         }.start();
     }

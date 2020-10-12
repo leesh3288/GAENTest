@@ -23,5 +23,5 @@ export class LogGeneral extends ValidationEntity {
     @IsOptional()
     @IsString()
     @Column("char", {length: 100, default: null})
-    msg: string;
+    msg?: string;
 }

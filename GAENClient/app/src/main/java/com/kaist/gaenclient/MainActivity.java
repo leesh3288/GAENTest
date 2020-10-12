@@ -106,12 +106,12 @@ public class MainActivity extends Activity{
         @Override
         public void onStartFailure(int errorCode) {
             Log.e(TAG, "Advertisement start failed with code: " + errorCode);
-            log("Advertisement start failed with code: " + errorCode);
+            log("Advertisement start failed with code: " + errorCode, true);
         }
         @Override
         public void onStartSuccess(AdvertiseSettings settingsInEffect) {
             Log.i(TAG, "Advertisement start succeeded.");
-            log("Advertisement start succeeded.");
+            log("Advertisement start succeeded.",true);
         }
     };
     private ScanCallback mScanCallback = new ScanCallback() {
@@ -463,14 +463,14 @@ public class MainActivity extends Activity{
             mBinding.advertiseSwitch.setChecked(false);
             logError("Permissions & bluetooth requirement not met");
         } else {
-            log("Enabled advertising.");
+            log("Enabled advertising.",true);
             startAdvertising();
         }
     }
 
     // Listener method for advertiseSwitch
     private void disableAdvertising() {
-        log("Disabled advertising.");
+        log("Disabled advertising.",true);
         stopAdvertising();
     }
 
@@ -516,7 +516,7 @@ public class MainActivity extends Activity{
 
         mBluetoothLeAdvertiser.startAdvertising(settings, data, mAdvertiseCallback);
 //        mBluetoothLeAdvertiser.startAdvertisingSet(setParams,data,null,null,null,mAdvertisingSetCallback);
-        log("Started advertising.");
+        log("Started advertising.",true);
     }
 
     private void stopAdvertising() {
@@ -524,7 +524,7 @@ public class MainActivity extends Activity{
             enabledAdvertising = false;
             mBluetoothLeAdvertiser.stopAdvertising(mAdvertiseCallback);
 //            mBluetoothLeAdvertiser.stopAdvertisingSet(mAdvertisingSetCallback);
-            log("Stopped advertising.");
+            log("Stopped advertising.",true);
         }
     }
 
@@ -660,7 +660,7 @@ public class MainActivity extends Activity{
             logError("Permissions & bluetooth requirement not met");
         } else {
             scanChannelCounter = 0;
-            log("Enabled scanning.");
+            log("Enabled scanning.",true);
             sHandler = new Handler();
             if (initJitter) {
                 secondsSinceLastScan = (int) (Math.random() * SCAN_PERIOD);
@@ -674,18 +674,18 @@ public class MainActivity extends Activity{
     // Listener method for scanSwitch
     private void disableScan() {
         enabledScanning = false;
-        log("Disabled scanning.");
+        log("Disabled scanning.",true);
         stopScan();
     }
 
     // Start scanning
     private void startScan() {
         if (!hasPermissions() || mScanning) {
-            log("Failed to start scan. Permission is not granted, or the device is already scanning.");
+            log("Failed to start scan. Permission is not granted, or the device is already scanning.",true);
             return;
         }
         if (!enabledScanning) {
-            log("Failed to start scan. Scanning is disabled now.");
+            log("Failed to start scan. Scanning is disabled now.",true);
             return;
         }
 
@@ -715,7 +715,7 @@ public class MainActivity extends Activity{
         sHandler.postDelayed(this::stopScan, SCAN_DURATION / 3);
 
         mScanning = true;
-        log("Started scanning.");
+        log("Started scanning.",true);
     }
 
     // Stop scanning
@@ -728,7 +728,7 @@ public class MainActivity extends Activity{
             mBluetoothLeScanner.stopScan(mScanCallback);
             if (enabledScanning) {
                 if (++scanChannelCounter < 3) {
-                    log("Scanning next channel...");
+                    log("Scanning next channel...", true);
                     mScanning = false;
                     startScan();
                     return;  // aggregate into ScanInstance after 3 cycles pass
@@ -738,13 +738,13 @@ public class MainActivity extends Activity{
                     int jitter = (int) (Math.random() * MAX_JITTER);   // 0 ~ 1.5 min jitter
                     secondsSinceLastScan = (int) (SCAN_PERIOD) - jitter;
                     sHandler.postDelayed(this::startScan, SCAN_PERIOD - SCAN_DURATION - jitter);
-                    log("Scan cycle complete.");
+                    log("Scan cycle complete.",true);
                 }
             } else {
-                log("Stopped scanning.");
+                log("Stopped scanning.",true);
             }
         } else if (!mScanning) {
-            log("Failed to stop scanning. The device is not scanning now.");
+            log("Failed to stop scanning. The device is not scanning now.",true);
         } else {
             logError("Failed to stop scanning. mScanning: " + mScanning + ", mBluetoothAdapter: " +mBluetoothAdapter + ", isEnables: " + mBluetoothAdapter.isEnabled() + ", mBleutoothLeScanner: " + mBluetoothLeScanner);
         }
@@ -774,8 +774,14 @@ public class MainActivity extends Activity{
             if(logArrayList.size() > maxLogs) logArrayList.remove(logArrayList.size()-1);
             logAdapter.notifyDataSetChanged();
         });
-        logGen(msg);
 //	    runOnUiThread(() -> mBinding.logTextview.setText( + "\n" + mBinding.logTextview.getText()));
+    }
+
+    public void log(String msg, boolean upload) {
+        log(msg);
+        if (upload) {
+            logGen(msg);
+        }
     }
 
     public void logError(String msg) {
@@ -795,14 +801,14 @@ public class MainActivity extends Activity{
      */
 
     private void enableUpload() {
-        log("Enabled periodic uploading.");
+        log("Enabled periodic uploading.",true);
         enabledUploading = true;
         uHandler = new Handler();
         uHandler.post(this::periodicUpload);
     }
 
     private void disableUpload() {
-        log("Disabled periodic uploading.");
+        log("Disabled periodic uploading.",true);
         enabledUploading = false;
         if (uHandler != null) {
             uHandler.removeCallbacksAndMessages(null);

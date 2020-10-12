@@ -26,6 +26,7 @@ public class Config {
     public static int advertiseTxPower = AdvertiseSettings.ADVERTISE_TX_POWER_LOW;
     // Can be SCAN_MODE_BALANCED/LOW_LATENCY/LOW_POWER/OPPORTUNISTIC
     public static int scanMode = ScanSettings.SCAN_MODE_LOW_LATENCY;
+    public static boolean initJitter = true;
 
     public static final UUID NAMESPACE_GAEN = Utils.HashUuidCreator.getSha1Uuid("NAMESPACE_GAEN");
 

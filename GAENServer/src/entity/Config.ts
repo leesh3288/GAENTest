@@ -29,4 +29,7 @@ export class Config extends BaseEntity {
 
     @Column("int", {nullable: false})
     scanMode: number;
+
+    @Column("bool", {nullable: false})
+    initJitter: boolean;
 }

@@ -51,21 +51,21 @@ RootRouter.put('/log', asyncHandler(async (req, res, next) => {
         return;
     }
 
-    let savedLogs: InsertResult;
+    res.status(201).send("Saving " + logs.length + " logs.");
+
     try {
-        savedLogs = await db.manager.getRepository(Log)
+        await db.manager.getRepository(Log)
             .createQueryBuilder()
             .insert()
             .values(logs)
             .useTransaction(true)
             .execute();
     } catch (e) {
-        res.status(400).send("Failed to save logs, check if data is well-formed.");
+        //res.status(400).send("Failed to save logs, check if data is well-formed.");
         console.log("Failed to save logs. Exception:");
         console.log(e);
         return;
     }
-    res.status(201).send("Saved " + savedLogs.generatedMaps.length + " logs.");
 }));
 
 RootRouter.put('/log_gen', asyncHandler(async (req, res, next) => {
@@ -92,21 +92,21 @@ RootRouter.put('/log_gen', asyncHandler(async (req, res, next) => {
         return;
     }
 
-    let savedLogs: InsertResult;
+    res.status(201).send("Saving " + logs_gen.length + " general logs.");
+
     try {
-        savedLogs = await db.manager.getRepository(LogGeneral)
+        await db.manager.getRepository(LogGeneral)
             .createQueryBuilder()
             .insert()
             .values(logs_gen)
             .useTransaction(true)
             .execute();
     } catch (e) {
-        res.status(400).send("Failed to save logs_gen, check if data is well-formed.");
+        //res.status(400).send("Failed to save logs_gen, check if data is well-formed.");
         console.log("Failed to save logs_gen. Exception:");
         console.log(e);
         return;
     }
-    res.status(201).send("Saved " + savedLogs.generatedMaps.length + " general logs.");
 }));
 
 RootRouter.put('/log_si', asyncHandler(async (req, res, next) => {
@@ -137,21 +137,21 @@ RootRouter.put('/log_si', asyncHandler(async (req, res, next) => {
         return;
     }
 
-    let savedLogs: InsertResult;
+    res.status(201).send("Saving " + logs.length + " logs.");
+
     try {
-        savedLogs = await db.manager.getRepository(ScanInstanceLog)
+        await db.manager.getRepository(ScanInstanceLog)
             .createQueryBuilder()
             .insert()
             .values(logs)
             .useTransaction(true)
             .execute();
     } catch (e) {
-        res.status(400).send("Failed to save logs, check if data is well-formed.");
+        //res.status(400).send("Failed to save logs, check if data is well-formed.");
         console.log("Failed to save logs. Exception:");
         console.log(e);
         return;
     }
-    res.status(201).send("Saved " + savedLogs.generatedMaps.length + " logs.");
 }));
 
 RootRouter.get('/db_log', asyncHandler(async (req, res, next) => {

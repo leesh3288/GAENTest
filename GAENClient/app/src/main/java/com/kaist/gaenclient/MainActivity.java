@@ -309,8 +309,7 @@ public class MainActivity extends Activity{
         mBinding.clearScanButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                scanned.clear();
-                scanInstances.clear();
+                clearLog();
                 log("Cleared scan log pending for upload.");
             }
         });
@@ -1034,5 +1033,7 @@ public class MainActivity extends Activity{
 
     public void clearLog() {
         scanned.clear();
+        scanInstances.clear();
+        // clear genLogs?
     }
 }

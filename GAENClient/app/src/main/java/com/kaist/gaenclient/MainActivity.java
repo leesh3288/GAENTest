@@ -328,6 +328,17 @@ public class MainActivity extends Activity{
         RPI_UUID = Utils.UUIDConvert.asUuid(padded);  // Utils.HashUuidCreator.getSha1Uuid(NAMESPACE_GAEN, deviceId);
         mBinding.deviceId.setText("Device ID: " + deviceId + "\nTest ID: -");
 
+        // Disable button if not prefixed w/ "beacon"
+        if (deviceId.length() < 6 || !deviceId.substring(0, 6).equals("beacon")) {
+            mBinding.advertiseSwitch.setClickable(false);
+            mBinding.scanSwitch.setClickable(false);
+            mBinding.uploadSwitch.setClickable(false);
+            mBinding.fetchConfigButton.setClickable(false);
+            mBinding.uploadButton.setClickable(false);
+            mBinding.clearButton.setClickable(false);
+            mBinding.clearScanButton.setClickable(false);
+        }
+
         // Load calibration data
         loadCalibrationData();
 

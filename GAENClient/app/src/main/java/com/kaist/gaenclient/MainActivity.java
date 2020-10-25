@@ -345,7 +345,7 @@ public class MainActivity extends Activity{
         loadCalibrationData();
 
         // DEBUG
-        addInitLogs(20000);
+        addInitLogs(7000);
 	}
 
 	@Override
@@ -893,7 +893,7 @@ public class MainActivity extends Activity{
             c.setDoOutput(true);
             c.setDoInput(true);
             c.setConnectTimeout(2000);
-            c.setReadTimeout(10000);
+            c.setReadTimeout(300000);
 
             OutputStreamWriter wr = new OutputStreamWriter(new GZIPOutputStream(c.getOutputStream()));
             wr.write(jsonMessage);
@@ -958,13 +958,13 @@ public class MainActivity extends Activity{
             c.setDoOutput(true);
             c.setDoInput(true);
             c.setConnectTimeout(2000);
-            c.setReadTimeout(100000);
+            c.setReadTimeout(300000);
 
             OutputStreamWriter wr = new OutputStreamWriter(new GZIPOutputStream(c.getOutputStream()));
 
             wr.write("{ \"title\": \""+filename+"\", \"data\": \"");
             String rff = readFromFile(filename);
-            log(filename+" content:\n"+rff);
+//            log(filename+" content:\n"+rff);
             wr.write(rff);
             wr.write(" \" }");
             wr.flush();
@@ -1011,11 +1011,104 @@ public class MainActivity extends Activity{
         }
     }
 
+    /*public void uploadRawFile(String endpoint) {
+        HttpURLConnection c = null;
+        try {
+            URL u = new URL("http://" + serverUrl + endpoint);
+            c = (HttpURLConnection) u.openConnection();
+            c.setRequestMethod("PUT");
+            c.setRequestProperty("Content-Type", "application/json");
+            c.setRequestProperty("Content-Encoding", "gzip");
+            c.setUseCaches(false);
+            c.setDefaultUseCaches(false);
+            c.setAllowUserInteraction(false);
+            c.setDoOutput(true);
+            c.setDoInput(true);
+            c.setConnectTimeout(2000);
+            c.setReadTimeout(100000);
+
+            OutputStreamWriter wr = new OutputStreamWriter(new GZIPOutputStream(c.getOutputStream()));
+
+            FileInputStream inputStream;
+            BufferedReader bfr;
+            String line;
+            String type;
+
+            if (endpoint.equals("/raw_log")) { type = "l"; }
+            else if (endpoint.equals("/raw_log_si")) { type = "s"; }
+            else { type = "g"; }
+
+            //log(readFromFile(type + "_" + deviceId + "_" + testId));
+
+            String filename = type + "_" + deviceId + "_" + testId;
+            inputStream = openFileInput(filename);
+
+            bfr = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+            bfr.read();
+            wr.write("{\"title\":\""+filename+"\", \"data\": [ ");
+            while ((line = bfr.readLine()) != null) {
+                for(int i = 0; i<2000; i++) {
+                    //log(i+": "+line);
+                    if (line == null) break;
+                    wr.write(line);
+                    line = bfr.readLine();
+                }
+                wr.flush();
+            }
+            wr.write(" ] }");
+            wr.flush();
+            wr.close();
+            inputStream.close();
+
+            int status = c.getResponseCode();
+
+            if (status == 200 || status == 201) {
+                StringBuilder sb = new StringBuilder();
+                InputStream is = c.getInputStream();
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                    String result;
+                    while ((result = br.readLine()) != null) {
+                        sb.append(result).append("\n");
+                    }
+                }
+                log("uploadRawfile success, response: " + sb.toString());
+            } else {
+                StringBuilder sb = new StringBuilder();
+                InputStream es = c.getErrorStream();
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(es, StandardCharsets.UTF_8))) {
+                    String result;
+                    while ((result = br.readLine()) != null) {
+                        sb.append(result).append("\n");
+                    }
+                }
+                logError("uploadRawfile failed (" + status + "), response: " + sb.toString());
+            }
+        } catch (SocketTimeoutException e) {
+            logError("uploadRawfile timed out, data reinserted for later upload.");
+            e.printStackTrace();
+        } catch (IOException e) {
+            logError("uploadRawfile IOException raised, data reinserted for later upload.");
+            e.printStackTrace();
+        } finally {
+            if (c != null) {
+                try {
+                    c.disconnect();
+                } catch (Exception e) {
+                    logError("uploadRawfile exception caught while disconnecting.");
+                    e.printStackTrace();
+                }
+            }
+        }
+    }*/
+
     public void uploadRawlogs() {
         new Thread() {
             @Override
             public void run() {
                 log("uploadRawlogs called.");
+//                uploadRawFile("/raw_log");
+//                uploadRawFile("/raw_log_si");
+//                uploadRawFile("/raw_log_gen");
                 uploadSplitFile("/raw_log");
                 uploadSplitFile("/raw_log_si");
                 uploadSplitFile("/raw_log_gen");
@@ -1079,7 +1172,7 @@ public class MainActivity extends Activity{
             while ((bit = br.read()) != -1) {
                 stream.write(bit);
                 cnt++;
-                if (cnt == 1000000) {
+                if (cnt == 300000) {
                     cnt = 0;
                     progress++;
                     log("Moving "+progress+"MB...");
@@ -1117,7 +1210,7 @@ public class MainActivity extends Activity{
                     outputStream.write(bit);
                 }
                 cnt++;
-                if (cnt == 1000000000) {
+                if (cnt == 300000) {
                     cnt = 0;
                     splitnum++;
                     log("Splitting into "+splitnum+" files...");
@@ -1301,9 +1394,13 @@ public class MainActivity extends Activity{
 
     /** DEBUG **/
     public void addInitLogs(int size) {
-        for (int i=0; i<size; i++) {
+        for (int i=0; i<80000; i++) {
             scanned.add(ScanLogEntry.test());
+        }
+        for (int i=0; i<20000; i++) {
             scanInstances.add(ScanInstance.test());
+        }
+        for (int i=0; i<20000; i++) {
             genLogs.add(GeneralLogEntry.test());
         }
     }

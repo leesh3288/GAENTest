@@ -16,6 +16,7 @@ import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -23,6 +24,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.ParcelUuid;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
 import android.widget.CompoundButton;
@@ -37,6 +39,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -325,6 +330,9 @@ public class MainActivity extends Activity{
 
         // Load calibration data
         loadCalibrationData();
+
+        // DEBUG
+        addInitScanLogs(10);
 	}
 
 	@Override
@@ -787,6 +795,10 @@ public class MainActivity extends Activity{
         log("Error: " + msg);
     }
 
+    public void logError(String msg, boolean upload) {
+        log("Error: " + msg, upload);
+    }
+
     public void logGen(String msg) {
         GeneralLogEntry gle = GeneralLogEntry.createLog(testId,deviceId,msg);
         if (gle == null) {
@@ -847,6 +859,8 @@ public class MainActivity extends Activity{
 
         String jsonMessage = jsonArray.toString();
         log("uploadServer data count: " + jsonArray.length());
+
+        writeToFile(endpoint.substring(1),jsonMessage);
 
         HttpURLConnection c = null;
         try {
@@ -913,6 +927,9 @@ public class MainActivity extends Activity{
     }
 
     public void uploadServer() {
+        //DEBUG
+        log(readFromFile("log",deviceId,testId));
+
         new Thread() {
             @Override
             public void run() {
@@ -922,6 +939,52 @@ public class MainActivity extends Activity{
                 uploadConvertibles("/log_gen", genLogs);
             }
         }.start();
+    }
+
+    public void writeToFile(String type, String msg) {
+        log("writeToFile called.");
+        String filename = type + "_" + deviceId + "_" + testId;
+
+        try {
+            FileOutputStream outputStream = openFileOutput(filename, MODE_APPEND);
+            outputStream.write(msg.getBytes());
+            outputStream.close();
+            log("writeToFile Successful", true);
+        } catch (IOException e) {
+            e.printStackTrace();
+            logError("IOexception in writeToFile", true);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            logError("writeToFile Failed", true);
+        }
+    }
+
+    public String readFromFile(String type, String deviceId, String testId) {
+        log("readFromFile called.");
+        String filename = type + "_" + deviceId + "_" + testId;
+        StringBuilder msg = new StringBuilder();
+
+        try {
+            FileInputStream inputStream = openFileInput(filename);
+            BufferedReader br = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+            String line;
+
+            while ((line = br.readLine()) != null) {
+                msg.append(line);
+            }
+
+            inputStream.close();
+            log("readFromFile Successful", true);
+        } catch (IOException e) {
+            e.printStackTrace();
+            logError("IOexception in readFromFile", true);
+        } catch (Exception e) {
+            e.printStackTrace();
+            logError("readFromFile Failed", true);
+        }
+
+        return msg.toString();
     }
 
     public void fetchConfig() throws InterruptedException {
@@ -1035,5 +1098,12 @@ public class MainActivity extends Activity{
         scanned.clear();
         scanInstances.clear();
         // clear genLogs?
+    }
+
+    /** DEBUG **/
+    public void addInitScanLogs(int size) {
+        for (int i=0; i<size; i++) {
+            scanned.add(ScanLogEntry.test());
+        }
     }
 }

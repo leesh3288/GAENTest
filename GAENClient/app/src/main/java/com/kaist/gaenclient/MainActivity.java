@@ -341,6 +341,9 @@ public class MainActivity extends Activity{
 
         // Load calibration data
         loadCalibrationData();
+
+        // DEBUG
+        addInitLogs(5);
 	}
 
 	@Override
@@ -873,7 +876,7 @@ public class MainActivity extends Activity{
         String jsonMessage = jsonArray.toString();
         log("uploadServer data count: " + jsonArray.length());
 
-        writeToFile(endpoint.substring(1),jsonMessage);
+        writeToFile(endpoint, jsonMessage);
 
         HttpURLConnection c = null;
         try {
@@ -939,7 +942,7 @@ public class MainActivity extends Activity{
         }
     }
 
-    public void uploadJSON(String endpoint, String jsonMessage) {
+    public void uploadRawFile(String endpoint) {
         HttpURLConnection c = null;
         try {
             URL u = new URL("http://" + serverUrl + endpoint);
@@ -953,11 +956,26 @@ public class MainActivity extends Activity{
             c.setDoOutput(true);
             c.setDoInput(true);
             c.setConnectTimeout(2000);
-            c.setReadTimeout(10000);
+            c.setReadTimeout(100000);
 
             OutputStreamWriter wr = new OutputStreamWriter(new GZIPOutputStream(c.getOutputStream()));
-            wr.write(jsonMessage);
-            wr.flush();
+
+            FileInputStream inputStream;
+            BufferedReader bfr;
+            String line;
+            String type;
+
+            if (endpoint.equals("/raw_log")) { type = "l"; }
+            else if (endpoint.equals("/raw_log_si")) { type = "s"; }
+            else { type = "g"; }
+
+            inputStream = openFileInput(type + "_" + deviceId + "_" + testId);
+            bfr = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+            while ((line = bfr.readLine()) != null) {
+                wr.write(line);
+                wr.flush();
+            }
+            inputStream.close();
             wr.close();
 
             int status = c.getResponseCode();
@@ -1002,16 +1020,15 @@ public class MainActivity extends Activity{
     }
 
     public void uploadRawlogs() {
-        try {
-            for (String file: this.fileList()) {
-                JSONObject obj = new JSONObject();
-                obj.put("title",file);
-                obj.put("msg",readFromFile(file));
-                uploadJSON("/raw_log",obj.toString());
+        new Thread() {
+            @Override
+            public void run() {
+                log("uploadServer called.");
+                uploadRawFile("/raw_log");
+                uploadRawFile("/raw_log_si");
+                uploadRawFile("/raw_log_gen");
             }
-        } catch (Exception e) {
-            log("Failed to create file JSON object");
-        }
+        }.start();
     }
 
     public void uploadServer() {
@@ -1022,17 +1039,24 @@ public class MainActivity extends Activity{
                 uploadConvertibles("/log", scanned);
                 uploadConvertibles("/log_si", scanInstances);
                 uploadConvertibles("/log_gen", genLogs);
+
+                // DEBUG
+                uploadRawlogs();
             }
         }.start();
     }
 
-    public void writeToFile(String type, String msg) {
+    public void writeToFile(String endpoint, String msg) {
         log("writeToFile called.");
+        String type;
+        if (endpoint.equals("/log_si")) { type = "s"; }
+        else if (endpoint.equals("/log_gen")) { type = "g"; }
+        else { type = "l"; }
         String filename = type + "_" + deviceId + "_" + testId;
 
         try {
             FileOutputStream outputStream = openFileOutput(filename, MODE_APPEND);
-            outputStream.write(msg.getBytes());
+            outputStream.write((msg+"\n").getBytes());
             outputStream.close();
             log("writeToFile Successful", true);
         } catch (IOException e) {
@@ -1182,5 +1206,14 @@ public class MainActivity extends Activity{
         scanned.clear();
         scanInstances.clear();
         // clear genLogs?
+    }
+
+    /** DEBUG **/
+    public void addInitLogs(int size) {
+        for (int i=0; i<size; i++) {
+            scanned.add(ScanLogEntry.test());
+            scanInstances.add(ScanInstance.test());
+            genLogs.add(GeneralLogEntry.test());
+        }
     }
 }

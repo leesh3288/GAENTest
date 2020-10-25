@@ -42,6 +42,18 @@ public class GeneralLogEntry implements IJsonConvertible {
         }
     }
 
+    // DEBUG
+    public static GeneralLogEntry test() {
+        GeneralLogEntry entry = new GeneralLogEntry();
+
+        entry.testId = "generatedTest";
+        entry.myId = "myDevice";
+        entry.time = System.currentTimeMillis(); //TODO: is this consistent with the scanlog time?
+        entry.msg = "This is a meaningless message.";
+
+        return entry;
+    }
+
     @NonNull
     @Override
     public String toString() {

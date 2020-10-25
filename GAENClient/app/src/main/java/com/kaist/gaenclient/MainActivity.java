@@ -835,7 +835,7 @@ public class MainActivity extends Activity{
     private void periodicUpload() {
         uploadServer();
         uHandler = new Handler();
-        uHandler.postDelayed(this::periodicUpload, UPLOAD_PERIOD);
+        uHandler.postDelayed(this::periodicUpload, (long) ((Math.random() + 1) * 0.5 * UPLOAD_PERIOD));
     }
 
     public <T extends IJsonConvertible> void uploadConvertibles(String endpoint, List<T> objects) {

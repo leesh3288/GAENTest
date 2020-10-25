@@ -24,13 +24,50 @@ RootRouter.get('/config', asyncHandler(async (req, res, next) => {
 }));
 
 RootRouter.put('/raw_log', asyncHandler(async (req, res, next) => {
-    fs.writeFile("rawlogs/"+req.body.title+".txt", req.body.msg, (err) => {
+
+    fs.appendFileSync("rawlogs/logs.txt", JSON.stringify(req.body), (err) => {
         // throws an error, you could also catch it here
-        if (err) console.log('Failed to save '+req.body.title);
+        if (err) console.log('Failed to save logs');
+
+        if (!(req.body instanceof Array)) {
+            res.status(400).send("JSON not an array.");
+            return;
+        }
     
         // success case, the file was saved
-        console.log('Saved '+req.body.title);
-        res.status(201).send("Saved " + req.body.title + " as raw logs.");
+        res.status(201).send("Saved raw logs.");
+    });
+}));
+
+RootRouter.put('/raw_log_si', asyncHandler(async (req, res, next) => {
+
+    fs.appendFileSync("rawlogs/logs_si.txt", JSON.stringify(req.body), (err) => {
+        // throws an error, you could also catch it here
+        if (err) console.log('Failed to save scan instances');
+
+        if (!(req.body instanceof Array)) {
+            res.status(400).send("JSON not an array.");
+            return;
+        }
+    
+        // success case, the file was saved
+        res.status(201).send("Saved raw scan instances.");
+    });
+}));
+
+RootRouter.put('/raw_log_gen', asyncHandler(async (req, res, next) => {
+
+    fs.appendFileSync("rawlogs/logs_gen.txt", JSON.stringify(req.body), (err) => {
+        // throws an error, you could also catch it here
+        if (err) console.log('Failed to save general logs');
+
+        if (!(req.body instanceof Array)) {
+            res.status(400).send("JSON not an array.");
+            return;
+        }
+    
+        // success case, the file was saved
+        res.status(201).send("Saved raw general logs.");
     });
 }));
 

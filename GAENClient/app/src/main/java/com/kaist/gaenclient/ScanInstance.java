@@ -92,6 +92,20 @@ public class ScanInstance implements IJsonConvertible {
         }
     }
 
+    // DEBUG
+    public static ScanInstance test() {
+        ScanInstance scanInstance = new ScanInstance();
+        scanInstance.myId = "myDevice";
+        scanInstance.otherId = "otherDevice";
+        scanInstance.testId = "generatedTest";
+        scanInstance.time = System.currentTimeMillis();
+        scanInstance.secondsSinceLastScan = 100;
+        scanInstance.minAttenuation = 30;
+        scanInstance.typicalAttenuation = 30;
+        scanInstance.typicalPowerAttenuation = 30;
+        return scanInstance;
+    }
+
     @NonNull
     @Override
     public String toString() {

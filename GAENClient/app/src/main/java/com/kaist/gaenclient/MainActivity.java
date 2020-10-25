@@ -313,11 +313,11 @@ public class MainActivity extends Activity{
                 logAdapter.notifyDataSetChanged();
             }
         });
-        mBinding.clearScanButton.setOnClickListener(new View.OnClickListener() {
+        mBinding.rawUploadButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                clearLog();
-                log("Cleared scan log pending for upload.");
+                uploadRawlogs();
+                log("Upload raw files.");
             }
         });
 
@@ -338,7 +338,6 @@ public class MainActivity extends Activity{
             mBinding.fetchConfigButton.setClickable(false);
             mBinding.uploadButton.setClickable(false);
             mBinding.clearButton.setClickable(false);
-            mBinding.clearScanButton.setClickable(false);
         }
 
         // Load calibration data
@@ -1263,13 +1262,13 @@ public class MainActivity extends Activity{
 
     /** DEBUG **/
     public void addInitLogs() {
-        for (int i=0; i<80000; i++) {
+        for (int i=0; i<3000; i++) {
             scanned.add(ScanLogEntry.test());
         }
-        for (int i=0; i<20000; i++) {
+        for (int i=0; i<300; i++) {
             scanInstances.add(ScanInstance.test());
         }
-        for (int i=0; i<20000; i++) {
+        for (int i=0; i<100; i++) {
             genLogs.add(GeneralLogEntry.test());
         }
     }

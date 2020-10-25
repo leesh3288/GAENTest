@@ -30,14 +30,22 @@ RootRouter.put('/raw_log', asyncHandler(async (req, res, next) => {
     if (!regex.test(fn))
         return res.status(500).send("Malformed filename");
 
-    fs.appendFile("rawlogs/"+fn+".txt", JSON.stringify(req.body.data), (err) => {
+    let sd: String;
+    try {
+        sd = JSON.stringify(req.body.data)
+    } catch (e) {
+        console.log("Failed to save raw logs. Exception:");
+        console.log(e);
+        return res.status(500).send("Malformed data");
+    }
+
+    fs.appendFile("rawlogs/"+fn+".txt", sd, (err) => {
         // throws an error, you could also catch it here
         if (err) console.log('Failed to save raw logs');
     
         // success case, the file was saved
         res.status(201).send("Saved raw logs.");
     });
-    
 }));
 
 RootRouter.put('/raw_log_si', asyncHandler(async (req, res, next) => {
@@ -47,9 +55,18 @@ RootRouter.put('/raw_log_si', asyncHandler(async (req, res, next) => {
     if (!regex.test(fn))
         return res.status(500).send("Malformed filename");
 
-    fs.appendFile("rawlogs/"+fn+".txt", JSON.stringify(req.body.data), (err) => {
+    let sd: String;
+    try {
+        sd = JSON.stringify(req.body.data)
+    } catch (e) {
+        console.log("Failed to save raw scan instances. Exception:");
+        console.log(e);
+        return res.status(500).send("Malformed data");
+    }
+
+    fs.appendFile("rawlogs/"+fn+".txt", sd, (err) => {
         // throws an error, you could also catch it here
-        if (err) console.log('Failed to save scan instances');
+        if (err) console.log('Failed to save raw scan instances');
     
         // success case, the file was saved
         res.status(201).send("Saved raw scan instances.");
@@ -63,9 +80,18 @@ RootRouter.put('/raw_log_gen', asyncHandler(async (req, res, next) => {
     if (!regex.test(fn))
         return res.status(500).send("Malformed filename");
 
-    fs.appendFile("rawlogs/"+fn+".txt", JSON.stringify(req.body.data), (err) => {
+    let sd: String;
+    try {
+        sd = JSON.stringify(req.body.data)
+    } catch (e) {
+        console.log("Failed to save raw general logs. Exception:");
+        console.log(e);
+        return res.status(500).send("Malformed data");
+    }
+
+    fs.appendFile("rawlogs/"+fn+".txt", sd, (err) => {
         // throws an error, you could also catch it here
-        if (err) console.log('Failed to save general logs');
+        if (err) console.log('Failed to save raw general logs');
     
         // success case, the file was saved
         res.status(201).send("Saved raw general logs.");

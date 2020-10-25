@@ -343,7 +343,7 @@ public class MainActivity extends Activity{
         loadCalibrationData();
 
         // DEBUG
-        addInitLogs(5);
+        addInitLogs(2);
 	}
 
 	@Override
@@ -969,14 +969,26 @@ public class MainActivity extends Activity{
             else if (endpoint.equals("/raw_log_si")) { type = "s"; }
             else { type = "g"; }
 
+            //log(readFromFile(type + "_" + deviceId + "_" + testId));
+
             inputStream = openFileInput(type + "_" + deviceId + "_" + testId);
+
             bfr = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+//            bfr.read();
+//            wr.write("[ ");
             while ((line = bfr.readLine()) != null) {
-                wr.write(line);
+                for(int i = 0; i<2000; i++) {
+                    log(i+": "+line);
+                    if (line == null) break;
+                    wr.write(line);
+                    line = bfr.readLine();
+                }
                 wr.flush();
             }
-            inputStream.close();
+//            wr.write(" ]");
+//            wr.flush();
             wr.close();
+            inputStream.close();
 
             int status = c.getResponseCode();
 
@@ -989,7 +1001,7 @@ public class MainActivity extends Activity{
                         sb.append(result).append("\n");
                     }
                 }
-                log("uploadServer success, response: " + sb.toString());
+                log("uploadRawfile success, response: " + sb.toString());
             } else {
                 StringBuilder sb = new StringBuilder();
                 InputStream es = c.getErrorStream();
@@ -999,20 +1011,20 @@ public class MainActivity extends Activity{
                         sb.append(result).append("\n");
                     }
                 }
-                logError("uploadServer failed (" + status + "), response: " + sb.toString());
+                logError("uploadRawfile failed (" + status + "), response: " + sb.toString());
             }
         } catch (SocketTimeoutException e) {
-            logError("uploadServer timed out, data reinserted for later upload.");
+            logError("uploadRawfile timed out, data reinserted for later upload.");
             e.printStackTrace();
         } catch (IOException e) {
-            logError("uploadServer IOException raised, data reinserted for later upload.");
+            logError("uploadRawfile IOException raised, data reinserted for later upload.");
             e.printStackTrace();
         } finally {
             if (c != null) {
                 try {
                     c.disconnect();
                 } catch (Exception e) {
-                    logError("uploadServer exception caught while disconnecting.");
+                    logError("uploadRawfile exception caught while disconnecting.");
                     e.printStackTrace();
                 }
             }
@@ -1023,7 +1035,7 @@ public class MainActivity extends Activity{
         new Thread() {
             @Override
             public void run() {
-                log("uploadServer called.");
+                log("uploadRawlogs called.");
                 uploadRawFile("/raw_log");
                 uploadRawFile("/raw_log_si");
                 uploadRawFile("/raw_log_gen");
@@ -1056,6 +1068,7 @@ public class MainActivity extends Activity{
 
         try {
             FileOutputStream outputStream = openFileOutput(filename, MODE_APPEND);
+//            outputStream.write((","+msg.substring(1,msg.length()-1)).getBytes());
             outputStream.write((msg+"\n").getBytes());
             outputStream.close();
             log("writeToFile Successful", true);
@@ -1096,6 +1109,9 @@ public class MainActivity extends Activity{
     }
 
     public void fetchConfig() throws InterruptedException {
+        // DEBUG
+        log(readFromFile("l_" + deviceId + "_" + testId));
+
         Thread th = new Thread(){
             @Override
             public void run() {

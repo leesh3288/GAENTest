@@ -22,6 +22,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.ParcelUuid;
 import android.os.SystemClock;
@@ -333,7 +334,7 @@ public class MainActivity extends Activity{
         loadCalibrationData();
 
         // DEBUG
-        addInitLogs(50000);
+        addInitLogs(20000);
 	}
 
 	@Override
@@ -946,7 +947,9 @@ public class MainActivity extends Activity{
             OutputStreamWriter wr = new OutputStreamWriter(new GZIPOutputStream(c.getOutputStream()));
 
             wr.write("{ \"title\": \""+filename+"\", \"data\": \"");
-            wr.write(readFromFile(filename));
+            String rff = readFromFile(filename);
+            log(filename+" content:\n"+rff);
+            wr.write(rff);
             wr.write(" \" }");
             wr.flush();
             wr.close();
@@ -1043,6 +1046,39 @@ public class MainActivity extends Activity{
         }
     }
 
+    public void writeToDownloads(String filename) {
+        log("Write "+filename+" to downloads.");
+        String newFilename = "Contact_Tracing_"+filename;
+//        File downloadFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), newFilename);
+        File downloadFolder = new File(Environment.DIRECTORY_DOWNLOADS,newFilename);
+        try {
+            FileOutputStream stream = new FileOutputStream(downloadFolder);
+            FileInputStream inputStream = openFileInput(filename);
+            BufferedReader br = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+
+            int bit;
+            int cnt = 0;
+            int progress = 0;
+            stream.write('[');
+            while ((bit = br.read()) != -1) {
+                stream.write(bit);
+                cnt++;
+                if (cnt == 1000000) {
+                    cnt = 0;
+                    progress++;
+                    log("Moving "+progress+"MB...");
+                }
+            }
+            stream.write(']');
+            stream.close();
+            inputStream.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public int splitFile(String filename) {
         log("Splitting file.");
         int splitnum = 1;
@@ -1053,27 +1089,29 @@ public class MainActivity extends Activity{
             inputStream = openFileInput(filename);
             bfr = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
 
-            FileOutputStream outputStream = openFileOutput(filename + " " + splitnum, MODE_PRIVATE);
+            FileOutputStream outputStream = openFileOutput(filename + "_" + splitnum, MODE_PRIVATE);
             bfr.read();
 
             outputStream.write('[');
             int cnt = 0;
             while ((bit = bfr.read()) != -1) {
                 if (bit == '"') {
-                    outputStream.write('\"');
+                    outputStream.write('\'');
                 } else {
                     outputStream.write(bit);
                 }
                 cnt++;
-                if (cnt == 1000000) {
+                if (cnt == 1000000000) {
                     cnt = 0;
                     splitnum++;
+                    log("Splitting into "+splitnum+" files...");
                     outputStream.close();
-                    outputStream = openFileOutput(filename + " " + splitnum, MODE_PRIVATE);
+                    outputStream = openFileOutput(filename + "_" + splitnum, MODE_PRIVATE);
                 }
             }
             outputStream.write(']');
             outputStream.close();
+            inputStream.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -1094,7 +1132,8 @@ public class MainActivity extends Activity{
         int splitnum = splitFile(filename);
 
         for (int i=1; i<=splitnum; i++) {
-            uploadRawFile(endpoint, filename+i);
+            log("Uploading files... ("+i+"/"+splitnum+")");
+            uploadRawFile(endpoint, filename+"_"+i);
         }
     }
 
@@ -1103,6 +1142,7 @@ public class MainActivity extends Activity{
         StringBuilder msg = new StringBuilder();
 
         try {
+            log("filename: "+filename);
             FileInputStream inputStream = openFileInput(filename);
             BufferedReader br = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
             String line;
@@ -1127,6 +1167,9 @@ public class MainActivity extends Activity{
     public void fetchConfig() throws InterruptedException {
         // DEBUG
         log(readFromFile("l_" + deviceId + "_" + testId));
+        String files = "";
+        for (String file: this.fileList()) { files += file+"\n"; }
+        log(files);
 
         Thread th = new Thread(){
             @Override

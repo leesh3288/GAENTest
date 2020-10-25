@@ -50,7 +50,8 @@ CREATE TABLE scan_instances (
     secondsSinceLastScan INT,
     typicalAttenuation INT,
     typicalPowerAttenuation INT,
-    minAttenuation INT
+    minAttenuation INT,
+    count INT
 );
 
 -- Initialize config

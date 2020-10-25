@@ -354,6 +354,11 @@ public class MainActivity extends Activity{
         stopAdvertising();
     }
 
+    @Override
+    public void onBackPressed() {
+	    // do nothing
+    }
+
     /**
      * Permissions
      */

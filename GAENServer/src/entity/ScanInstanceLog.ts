@@ -44,4 +44,9 @@ export class ScanInstanceLog extends ValidationEntity {
     @IsInt()
     @Column("int", {nullable: false})
     minAttenuation: number;
+
+    @IsOptional()
+    @IsInt()
+    @Column("int", {nullable: false})
+    count: number;
 }

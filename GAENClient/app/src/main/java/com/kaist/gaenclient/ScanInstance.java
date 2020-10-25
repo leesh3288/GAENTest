@@ -19,6 +19,7 @@ public class ScanInstance implements IJsonConvertible {
     private int typicalPowerAttenuation;    // Attenuation averaged in power domain
     private int minAttenuation;
     private int secondsSinceLastScan;
+    private int count;
 
     // Takes all ScanLogEntries from that scan, and return the list of ScanResults
     public static List<ScanInstance> fromScanResults(List<ScanLogEntry> results, int secondsSinceLastScan) {
@@ -55,6 +56,7 @@ public class ScanInstance implements IJsonConvertible {
         scanInstance.minAttenuation = Collections.min(attenuations);
         scanInstance.typicalAttenuation = dBMean(attenuations);
         scanInstance.typicalPowerAttenuation = powerMean(attenuations);
+        scanInstance.count = results.size();
         return scanInstance;
     }
 
@@ -85,6 +87,7 @@ public class ScanInstance implements IJsonConvertible {
             obj.put("typicalPowerAttenuation", typicalPowerAttenuation);
             obj.put("minAttenuation", minAttenuation);
             obj.put("secondsSinceLastScan", secondsSinceLastScan);
+            obj.put("count", count);
             return obj;
         } catch (JSONException e) {
             e.printStackTrace();
@@ -103,6 +106,7 @@ public class ScanInstance implements IJsonConvertible {
                 ", typicalPowerAttenuation=" + typicalPowerAttenuation +
                 ", minAttenuation=" + minAttenuation +
                 ", secondsSinceLastScan=" + secondsSinceLastScan +
+                ", count=" + count +
                 '}';
     }
 }

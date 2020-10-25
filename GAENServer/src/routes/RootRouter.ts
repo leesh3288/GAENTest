@@ -24,13 +24,36 @@ RootRouter.get('/config', asyncHandler(async (req, res, next) => {
 }));
 
 RootRouter.put('/raw_log', asyncHandler(async (req, res, next) => {
-    fs.writeFile("rawlogs/"+req.body.title+".txt", req.body.msg, (err) => {
+
+    fs.appendFile("rawlogs/"+req.body.title+".txt", JSON.stringify(req.body.data), (err) => {
         // throws an error, you could also catch it here
-        if (err) console.log('Failed to save '+req.body.title);
+        if (err) console.log('Failed to save raw logs');
     
         // success case, the file was saved
-        console.log('Saved '+req.body.title);
-        res.status(201).send("Saved " + req.body.title + " as raw logs.");
+        res.status(201).send("Saved raw logs.");
+    });
+    
+}));
+
+RootRouter.put('/raw_log_si', asyncHandler(async (req, res, next) => {
+
+    fs.appendFile("rawlogs/"+req.body.title+".txt", JSON.stringify(req.body.data), (err) => {
+        // throws an error, you could also catch it here
+        if (err) console.log('Failed to save scan instances');
+    
+        // success case, the file was saved
+        res.status(201).send("Saved raw scan instances.");
+    });
+}));
+
+RootRouter.put('/raw_log_gen', asyncHandler(async (req, res, next) => {
+
+    fs.appendFile("rawlogs/"+req.body.title+".txt", JSON.stringify(req.body.data), (err) => {
+        // throws an error, you could also catch it here
+        if (err) console.log('Failed to save general logs');
+    
+        // success case, the file was saved
+        res.status(201).send("Saved raw general logs.");
     });
 }));
 
@@ -142,6 +165,7 @@ RootRouter.put('/log_si', asyncHandler(async (req, res, next) => {
         log.typicalAttenuation = entry.typicalAttenuation;
         log.typicalPowerAttenuation = entry.typicalPowerAttenuation;
         log.minAttenuation = entry.minAttenuation;
+        log.count = entry.count;
         logs.push(log);
     }
     if (logs.length == 0) {

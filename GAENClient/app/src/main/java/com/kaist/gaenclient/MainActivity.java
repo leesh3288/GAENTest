@@ -22,6 +22,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.ParcelUuid;
 import android.os.SystemClock;
@@ -41,6 +42,7 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -311,11 +313,11 @@ public class MainActivity extends Activity{
                 logAdapter.notifyDataSetChanged();
             }
         });
-        mBinding.clearScanButton.setOnClickListener(new View.OnClickListener() {
+        mBinding.rawUploadButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                clearLog();
-                log("Cleared scan log pending for upload.");
+                uploadRawlogs();
+                log("Upload raw files.");
             }
         });
 
@@ -334,16 +336,17 @@ public class MainActivity extends Activity{
             mBinding.scanSwitch.setClickable(false);
             mBinding.uploadSwitch.setClickable(false);
             mBinding.fetchConfigButton.setClickable(false);
-            mBinding.uploadButton.setClickable(false);
+//            mBinding.uploadButton.setClickable(false);
             mBinding.clearButton.setClickable(false);
-            mBinding.clearScanButton.setClickable(false);
         }
 
         // Load calibration data
         loadCalibrationData();
 
-        // DEBUG
-        addInitScanLogs(10);
+        // Show current config
+        log(String.format(Locale.getDefault(),
+                "Current Config:\nSCAN_PERIOD: %d\nSCAN_DURATION: %d\nUPLOAD_PERIOD: %d\nSERVICE_UUID: 0x%04x\nPROTOCOL_VER: 0x%02x\nadvertiseMode: %d\nadvertiseTxPower: %d\nscanMode: %d\ninitJitter: %b\n",
+                SCAN_PERIOD, SCAN_DURATION, UPLOAD_PERIOD, SERVICE_UUID, PROTOCOL_VER, advertiseMode, advertiseTxPower, scanMode, initJitter));
 	}
 
 	@Override
@@ -827,6 +830,11 @@ public class MainActivity extends Activity{
      * Server related functions
      */
 
+    // Setting scanSwitch
+    public void setUpload(boolean upload) {
+        runOnUiThread(() -> mBinding.uploadSwitch.setChecked(upload));
+    }
+
     private void enableUpload() {
         log("Enabled periodic uploading.",true);
         enabledUploading = true;
@@ -876,7 +884,7 @@ public class MainActivity extends Activity{
         String jsonMessage = jsonArray.toString();
         log("uploadServer data count: " + jsonArray.length());
 
-        writeToFile(endpoint.substring(1),jsonMessage);
+        writeToFile(endpoint, jsonMessage);
 
         HttpURLConnection c = null;
         try {
@@ -891,7 +899,7 @@ public class MainActivity extends Activity{
             c.setDoOutput(true);
             c.setDoInput(true);
             c.setConnectTimeout(2000);
-            c.setReadTimeout(10000);
+            c.setReadTimeout(300000);
 
             OutputStreamWriter wr = new OutputStreamWriter(new GZIPOutputStream(c.getOutputStream()));
             wr.write(jsonMessage);
@@ -942,28 +950,114 @@ public class MainActivity extends Activity{
         }
     }
 
-    public void uploadServer() {
-        //DEBUG
-        log(readFromFile("log",deviceId,testId));
+    public void uploadRawFile(String endpoint, String filename) {
+        HttpURLConnection c = null;
+        try {
+            URL u = new URL("http://" + serverUrl + endpoint);
+            c = (HttpURLConnection) u.openConnection();
+            c.setRequestMethod("PUT");
+            c.setRequestProperty("Content-Type", "application/json");
+            c.setRequestProperty("Content-Encoding", "gzip");
+            c.setUseCaches(false);
+            c.setDefaultUseCaches(false);
+            c.setAllowUserInteraction(false);
+            c.setDoOutput(true);
+            c.setDoInput(true);
+            c.setConnectTimeout(2000);
+            c.setReadTimeout(300000);
 
+            OutputStreamWriter wr = new OutputStreamWriter(new GZIPOutputStream(c.getOutputStream()));
+
+            wr.write("{ \"title\": \""+filename+"\", \"data\": \"");
+            String rff = readFromFile(filename);
+            wr.write(rff);
+            wr.write(" \" }");
+            wr.flush();
+            wr.close();
+
+            int status = c.getResponseCode();
+
+            if (status == 200 || status == 201) {
+                StringBuilder sb = new StringBuilder();
+                InputStream is = c.getInputStream();
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                    String result;
+                    while ((result = br.readLine()) != null) {
+                        sb.append(result).append("\n");
+                    }
+                }
+                log("uploadRawfile success, response: " + sb.toString());
+            } else {
+                StringBuilder sb = new StringBuilder();
+                InputStream es = c.getErrorStream();
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(es, StandardCharsets.UTF_8))) {
+                    String result;
+                    while ((result = br.readLine()) != null) {
+                        sb.append(result).append("\n");
+                    }
+                }
+                logError("uploadRawfile failed (" + status + "), response: " + sb.toString());
+            }
+        } catch (SocketTimeoutException e) {
+            logError("uploadRawfile timed out, data reinserted for later upload.");
+            e.printStackTrace();
+        } catch (IOException e) {
+            logError("uploadRawfile IOException raised, data reinserted for later upload.");
+            e.printStackTrace();
+        } finally {
+            if (c != null) {
+                try {
+                    c.disconnect();
+                } catch (Exception e) {
+                    logError("uploadRawfile exception caught while disconnecting.");
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public void uploadRawlogs() {
+        new Thread() {
+            @Override
+            public void run() {
+                log("uploadRawlogs called.");
+                uploadSplitFile("/raw_log");
+                uploadSplitFile("/raw_log_si");
+                uploadSplitFile("/raw_log_gen");
+            }
+        }.start();
+    }
+
+    public void uploadServer() {
         new Thread() {
             @Override
             public void run() {
                 log("uploadServer called.");
-                uploadConvertibles("/log", scanned);
+                if (deviceId.length() < 6 || !deviceId.substring(0, 6).equals("beacon")) {
+                    // Beacons should not upload log.
+                    uploadConvertibles("/log", scanned);
+                } else {
+                    scanned.clear();
+                }
+
                 uploadConvertibles("/log_si", scanInstances);
                 uploadConvertibles("/log_gen", genLogs);
             }
         }.start();
     }
 
-    public void writeToFile(String type, String msg) {
+    public void writeToFile(String endpoint, String msg) {
         log("writeToFile called.");
+        String type;
+        if (endpoint.equals("/log_si")) { type = "s"; }
+        else if (endpoint.equals("/log_gen")) { type = "g"; }
+        else { type = "l"; }
         String filename = type + "_" + deviceId + "_" + testId;
 
         try {
             FileOutputStream outputStream = openFileOutput(filename, MODE_APPEND);
-            outputStream.write(msg.getBytes());
+            outputStream.write((","+msg.substring(1,msg.length()-1)).getBytes());
+//            outputStream.write((msg+"\n").getBytes());
             outputStream.close();
             log("writeToFile Successful", true);
         } catch (IOException e) {
@@ -976,12 +1070,70 @@ public class MainActivity extends Activity{
         }
     }
 
-    public String readFromFile(String type, String deviceId, String testId) {
-        log("readFromFile called.");
+    public int splitFile(String filename) {
+        log("Splitting file.");
+        int splitnum = 1;
+        FileInputStream inputStream;
+        BufferedReader bfr;
+        int bit;
+        try{
+            inputStream = openFileInput(filename);
+            bfr = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+
+            FileOutputStream outputStream = openFileOutput(filename + "_" + splitnum, MODE_PRIVATE);
+            bfr.read();
+
+            outputStream.write('[');
+            int cnt = 0;
+            while ((bit = bfr.read()) != -1) {
+                if (bit == '"') {
+                    outputStream.write('\'');
+                } else {
+                    outputStream.write(bit);
+                }
+                cnt++;
+                if (cnt == 300000) {
+                    cnt = 0;
+                    splitnum++;
+                    log("Splitting into "+splitnum+" files...");
+                    outputStream.close();
+                    outputStream = openFileOutput(filename + "_" + splitnum, MODE_PRIVATE);
+                }
+            }
+            outputStream.write(']');
+            outputStream.close();
+            inputStream.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return splitnum;
+    }
+
+    public void uploadSplitFile(String endpoint) {
+        String type;
+
+        if (endpoint.equals("/raw_log")) { type = "l"; }
+        else if (endpoint.equals("/raw_log_si")) { type = "s"; }
+        else { type = "g"; }
+
         String filename = type + "_" + deviceId + "_" + testId;
+
+        int splitnum = splitFile(filename);
+
+        for (int i=1; i<=splitnum; i++) {
+            log("Uploading files... ("+i+"/"+splitnum+")");
+            uploadRawFile(endpoint, filename+"_"+i);
+        }
+    }
+
+    public String readFromFile(String filename) {
+        log("readFromFile called.");
         StringBuilder msg = new StringBuilder();
 
         try {
+            log("filename: "+filename);
             FileInputStream inputStream = openFileInput(filename);
             BufferedReader br = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
             String line;
@@ -1114,12 +1266,5 @@ public class MainActivity extends Activity{
         scanned.clear();
         scanInstances.clear();
         // clear genLogs?
-    }
-
-    /** DEBUG **/
-    public void addInitScanLogs(int size) {
-        for (int i=0; i<size; i++) {
-            scanned.add(ScanLogEntry.test());
-        }
     }
 }

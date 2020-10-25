@@ -97,11 +97,11 @@
                 android:text="Clear Log" />
 
             <Button
-                android:id="@+id/clear_scan_button"
+                android:id="@+id/raw_upload_button"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Clear Scan Log" />
+                android:text="Upload Raw File" />
         </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView

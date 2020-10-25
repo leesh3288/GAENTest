@@ -9,7 +9,7 @@ public class Config {
     public static long SCAN_PERIOD = 5 * 60 * 1000;     // 5 minutes
     public static long SCAN_DURATION = 4 * 1000;        // 4 seconds
     public static long MAX_JITTER = 90 * 1000;          // 0 ~ 1.5 min jitter
-    public static long UPLOAD_PERIOD = 60 * 60 * 1000;  // 1 hour
+    public static long UPLOAD_PERIOD = 10 * 60 * 1000;  // 10 minutes
 
     public static int SERVICE_UUID = 0xfd6f;
 

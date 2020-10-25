@@ -58,6 +58,7 @@ public class SocketManager {
             } else if (!mainActivity.deviceId.substring(0,3).equals("adv")) {
                 mainActivity.setScan(true);
             }
+            mainActivity.setUpload(true);
             mainActivity.log("Start experiment.");
             mSocket.emit("start-success");
         });

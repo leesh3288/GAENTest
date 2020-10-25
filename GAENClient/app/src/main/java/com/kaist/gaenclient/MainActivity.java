@@ -336,7 +336,7 @@ public class MainActivity extends Activity{
             mBinding.scanSwitch.setClickable(false);
             mBinding.uploadSwitch.setClickable(false);
             mBinding.fetchConfigButton.setClickable(false);
-            mBinding.uploadButton.setClickable(false);
+//            mBinding.uploadButton.setClickable(false);
             mBinding.clearButton.setClickable(false);
         }
 
@@ -347,9 +347,6 @@ public class MainActivity extends Activity{
         log(String.format(Locale.getDefault(),
                 "Current Config:\nSCAN_PERIOD: %d\nSCAN_DURATION: %d\nUPLOAD_PERIOD: %d\nSERVICE_UUID: 0x%04x\nPROTOCOL_VER: 0x%02x\nadvertiseMode: %d\nadvertiseTxPower: %d\nscanMode: %d\ninitJitter: %b\n",
                 SCAN_PERIOD, SCAN_DURATION, UPLOAD_PERIOD, SERVICE_UUID, PROTOCOL_VER, advertiseMode, advertiseTxPower, scanMode, initJitter));
-
-        // DEBUG
-        addInitLogs();
 	}
 
 	@Override
@@ -833,6 +830,11 @@ public class MainActivity extends Activity{
      * Server related functions
      */
 
+    // Setting scanSwitch
+    public void setUpload(boolean upload) {
+        runOnUiThread(() -> mBinding.uploadSwitch.setChecked(upload));
+    }
+
     private void enableUpload() {
         log("Enabled periodic uploading.",true);
         enabledUploading = true;
@@ -1258,18 +1260,5 @@ public class MainActivity extends Activity{
         scanned.clear();
         scanInstances.clear();
         // clear genLogs?
-    }
-
-    /** DEBUG **/
-    public void addInitLogs() {
-        for (int i=0; i<3000; i++) {
-            scanned.add(ScanLogEntry.test());
-        }
-        for (int i=0; i<300; i++) {
-            scanInstances.add(ScanInstance.test());
-        }
-        for (int i=0; i<100; i++) {
-            genLogs.add(GeneralLogEntry.test());
-        }
     }
 }

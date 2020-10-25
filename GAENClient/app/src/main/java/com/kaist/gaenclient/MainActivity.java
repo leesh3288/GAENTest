@@ -974,8 +974,8 @@ public class MainActivity extends Activity{
             inputStream = openFileInput(type + "_" + deviceId + "_" + testId);
 
             bfr = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-//            bfr.read();
-//            wr.write("[ ");
+            bfr.read();
+            wr.write("[ ");
             while ((line = bfr.readLine()) != null) {
                 for(int i = 0; i<2000; i++) {
                     log(i+": "+line);
@@ -985,8 +985,8 @@ public class MainActivity extends Activity{
                 }
                 wr.flush();
             }
-//            wr.write(" ]");
-//            wr.flush();
+            wr.write(" ]");
+            wr.flush();
             wr.close();
             inputStream.close();
 
@@ -1068,8 +1068,8 @@ public class MainActivity extends Activity{
 
         try {
             FileOutputStream outputStream = openFileOutput(filename, MODE_APPEND);
-//            outputStream.write((","+msg.substring(1,msg.length()-1)).getBytes());
-            outputStream.write((msg+"\n").getBytes());
+            outputStream.write((","+msg.substring(1,msg.length()-1)).getBytes());
+//            outputStream.write((msg+"\n").getBytes());
             outputStream.close();
             log("writeToFile Successful", true);
         } catch (IOException e) {

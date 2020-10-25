@@ -1033,7 +1033,13 @@ public class MainActivity extends Activity{
             @Override
             public void run() {
                 log("uploadServer called.");
-                uploadConvertibles("/log", scanned);
+                if (deviceId.length() < 6 || !deviceId.substring(0, 6).equals("beacon")) {
+                    // Beacons should not upload log.
+                    uploadConvertibles("/log", scanned);
+                } else {
+                    scanned.clear();
+                }
+
                 uploadConvertibles("/log_si", scanInstances);
                 uploadConvertibles("/log_gen", genLogs);
             }

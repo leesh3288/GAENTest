@@ -1106,4 +1106,11 @@ public class MainActivity extends Activity{
             scanned.add(ScanLogEntry.test());
         }
     }
+
+    /** DEBUG **/
+    public void addInitScanLogs(int size) {
+        for (int i=0; i<size; i++) {
+            scanned.add(ScanLogEntry.test());
+        }
+    }
 }

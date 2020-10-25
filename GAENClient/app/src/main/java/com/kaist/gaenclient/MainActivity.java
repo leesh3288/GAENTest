@@ -41,6 +41,7 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -332,7 +333,7 @@ public class MainActivity extends Activity{
         loadCalibrationData();
 
         // DEBUG
-        addInitLogs(2);
+        addInitLogs(50000);
 	}
 
 	@Override
@@ -926,7 +927,7 @@ public class MainActivity extends Activity{
         }
     }
 
-    public void uploadRawFile(String endpoint) {
+    public void uploadRawFile(String endpoint, String filename) {
         HttpURLConnection c = null;
         try {
             URL u = new URL("http://" + serverUrl + endpoint);
@@ -944,35 +945,11 @@ public class MainActivity extends Activity{
 
             OutputStreamWriter wr = new OutputStreamWriter(new GZIPOutputStream(c.getOutputStream()));
 
-            FileInputStream inputStream;
-            BufferedReader bfr;
-            String line;
-            String type;
-
-            if (endpoint.equals("/raw_log")) { type = "l"; }
-            else if (endpoint.equals("/raw_log_si")) { type = "s"; }
-            else { type = "g"; }
-
-            //log(readFromFile(type + "_" + deviceId + "_" + testId));
-
-            inputStream = openFileInput(type + "_" + deviceId + "_" + testId);
-
-            bfr = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-            bfr.read();
-            wr.write("[ ");
-            while ((line = bfr.readLine()) != null) {
-                for(int i = 0; i<2000; i++) {
-                    log(i+": "+line);
-                    if (line == null) break;
-                    wr.write(line);
-                    line = bfr.readLine();
-                }
-                wr.flush();
-            }
-            wr.write(" ]");
+            wr.write("{ \"title\": \""+filename+"\", \"data\": \"");
+            wr.write(readFromFile(filename));
+            wr.write(" \" }");
             wr.flush();
             wr.close();
-            inputStream.close();
 
             int status = c.getResponseCode();
 
@@ -1020,9 +997,9 @@ public class MainActivity extends Activity{
             @Override
             public void run() {
                 log("uploadRawlogs called.");
-                uploadRawFile("/raw_log");
-                uploadRawFile("/raw_log_si");
-                uploadRawFile("/raw_log_gen");
+                uploadSplitFile("/raw_log");
+                uploadSplitFile("/raw_log_si");
+                uploadSplitFile("/raw_log_gen");
             }
         }.start();
     }
@@ -1063,6 +1040,61 @@ public class MainActivity extends Activity{
         catch (Exception e) {
             e.printStackTrace();
             logError("writeToFile Failed", true);
+        }
+    }
+
+    public int splitFile(String filename) {
+        log("Splitting file.");
+        int splitnum = 1;
+        FileInputStream inputStream;
+        BufferedReader bfr;
+        int bit;
+        try{
+            inputStream = openFileInput(filename);
+            bfr = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+
+            FileOutputStream outputStream = openFileOutput(filename + " " + splitnum, MODE_PRIVATE);
+            bfr.read();
+
+            outputStream.write('[');
+            int cnt = 0;
+            while ((bit = bfr.read()) != -1) {
+                if (bit == '"') {
+                    outputStream.write('\"');
+                } else {
+                    outputStream.write(bit);
+                }
+                cnt++;
+                if (cnt == 1000000) {
+                    cnt = 0;
+                    splitnum++;
+                    outputStream.close();
+                    outputStream = openFileOutput(filename + " " + splitnum, MODE_PRIVATE);
+                }
+            }
+            outputStream.write(']');
+            outputStream.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return splitnum;
+    }
+
+    public void uploadSplitFile(String endpoint) {
+        String type;
+
+        if (endpoint.equals("/raw_log")) { type = "l"; }
+        else if (endpoint.equals("/raw_log_si")) { type = "s"; }
+        else { type = "g"; }
+
+        String filename = type + "_" + deviceId + "_" + testId;
+
+        int splitnum = splitFile(filename);
+
+        for (int i=1; i<=splitnum; i++) {
+            uploadRawFile(endpoint, filename+i);
         }
     }
 

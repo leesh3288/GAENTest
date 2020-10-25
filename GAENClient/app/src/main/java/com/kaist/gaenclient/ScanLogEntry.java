@@ -83,6 +83,23 @@ public class ScanLogEntry implements IJsonConvertible {
         }
     }
 
+    // DEBUG
+    public static ScanLogEntry test() {
+        ScanLogEntry entry = new ScanLogEntry();
+
+        entry.testId = "generatedTest";
+        entry.myId = "muDevice";
+        entry.time = System.currentTimeMillis();
+        entry.logType = 0;  // TODO: field useful or not?
+        entry.rssi = -30;
+        entry.tx = 80;
+        entry.attenuation = 30;
+        entry.rssiCorrection = 30;
+        entry.otherId = "otherDevice";
+
+        return entry;
+    }
+
     @NonNull
     @Override
     public String toString() {

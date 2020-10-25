@@ -24,8 +24,13 @@ RootRouter.get('/config', asyncHandler(async (req, res, next) => {
 }));
 
 RootRouter.put('/raw_log', asyncHandler(async (req, res, next) => {
+    let regex = /^[\w-]+$/;
+    let fn = String(req.body.title);
 
-    fs.appendFile("rawlogs/"+req.body.title+".txt", JSON.stringify(req.body.data), (err) => {
+    if (!regex.test(fn))
+        return res.status(500).send("Malformed filename");
+
+    fs.appendFile("rawlogs/"+fn+".txt", JSON.stringify(req.body.data), (err) => {
         // throws an error, you could also catch it here
         if (err) console.log('Failed to save raw logs');
     
@@ -36,8 +41,13 @@ RootRouter.put('/raw_log', asyncHandler(async (req, res, next) => {
 }));
 
 RootRouter.put('/raw_log_si', asyncHandler(async (req, res, next) => {
+    let regex = /^[\w-]+$/;
+    let fn = String(req.body.title);
 
-    fs.appendFile("rawlogs/"+req.body.title+".txt", JSON.stringify(req.body.data), (err) => {
+    if (!regex.test(fn))
+        return res.status(500).send("Malformed filename");
+
+    fs.appendFile("rawlogs/"+fn+".txt", JSON.stringify(req.body.data), (err) => {
         // throws an error, you could also catch it here
         if (err) console.log('Failed to save scan instances');
     
@@ -47,8 +57,13 @@ RootRouter.put('/raw_log_si', asyncHandler(async (req, res, next) => {
 }));
 
 RootRouter.put('/raw_log_gen', asyncHandler(async (req, res, next) => {
+    let regex = /^[\w-]+$/;
+    let fn = String(req.body.title);
 
-    fs.appendFile("rawlogs/"+req.body.title+".txt", JSON.stringify(req.body.data), (err) => {
+    if (!regex.test(fn))
+        return res.status(500).send("Malformed filename");
+
+    fs.appendFile("rawlogs/"+fn+".txt", JSON.stringify(req.body.data), (err) => {
         // throws an error, you could also catch it here
         if (err) console.log('Failed to save general logs');
     

@@ -165,6 +165,7 @@ RootRouter.put('/log_si', asyncHandler(async (req, res, next) => {
         log.typicalAttenuation = entry.typicalAttenuation;
         log.typicalPowerAttenuation = entry.typicalPowerAttenuation;
         log.minAttenuation = entry.minAttenuation;
+        log.count = entry.count;
         logs.push(log);
     }
     if (logs.length == 0) {

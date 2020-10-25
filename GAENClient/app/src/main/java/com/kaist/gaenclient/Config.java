@@ -35,5 +35,5 @@ public class Config {
      */
 
     // Server
-    public static String serverUrl = "192.249.19.252:2880";
+    public static String serverUrl = "110.76.78.76:54545";
 }

@@ -898,7 +898,7 @@ public class MainActivity extends Activity{
             c.setAllowUserInteraction(false);
             c.setDoOutput(true);
             c.setDoInput(true);
-            c.setConnectTimeout(2000);
+            c.setConnectTimeout(60000);
             c.setReadTimeout(300000);
 
             OutputStreamWriter wr = new OutputStreamWriter(new GZIPOutputStream(c.getOutputStream()));
@@ -963,7 +963,7 @@ public class MainActivity extends Activity{
             c.setAllowUserInteraction(false);
             c.setDoOutput(true);
             c.setDoInput(true);
-            c.setConnectTimeout(2000);
+            c.setConnectTimeout(60000);
             c.setReadTimeout(300000);
 
             OutputStreamWriter wr = new OutputStreamWriter(new GZIPOutputStream(c.getOutputStream()));

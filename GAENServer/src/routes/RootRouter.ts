@@ -32,7 +32,8 @@ RootRouter.put('/raw_log', asyncHandler(async (req, res, next) => {
 
     let sd: String;
     try {
-        sd = JSON.stringify(req.body.data)
+        sd = JSON.stringify(req.body.data);
+        if (sd === undefined) throw 'Undefined data';
     } catch (e) {
         console.log("Failed to save raw logs. Exception:");
         console.log(e);
@@ -57,7 +58,8 @@ RootRouter.put('/raw_log_si', asyncHandler(async (req, res, next) => {
 
     let sd: String;
     try {
-        sd = JSON.stringify(req.body.data)
+        sd = JSON.stringify(req.body.data);
+        if (sd === undefined) throw 'Undefined data';
     } catch (e) {
         console.log("Failed to save raw scan instances. Exception:");
         console.log(e);
@@ -82,7 +84,8 @@ RootRouter.put('/raw_log_gen', asyncHandler(async (req, res, next) => {
 
     let sd: String;
     try {
-        sd = JSON.stringify(req.body.data)
+        sd = JSON.stringify(req.body.data);
+        if (sd === undefined) throw 'Undefined data';
     } catch (e) {
         console.log("Failed to save raw general logs. Exception:");
         console.log(e);

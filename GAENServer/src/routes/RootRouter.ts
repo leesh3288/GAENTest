@@ -5,6 +5,7 @@ import { Log } from "../entity/Log";
 import { LogGeneral } from "../entity/LogGeneral";
 import { Config } from "../entity/Config"
 import { ScanInstanceLog } from "../entity/ScanInstanceLog";
+const fs = require('fs');
 
 export const RootRouter = express.Router();
 
@@ -20,6 +21,17 @@ RootRouter.get('/config', asyncHandler(async (req, res, next) => {
         return;
     }
     res.status(200).send(config);
+}));
+
+RootRouter.put('/raw_log', asyncHandler(async (req, res, next) => {
+    fs.writeFile("rawlogs/"+req.body.title+".txt", req.body.msg, (err) => {
+        // throws an error, you could also catch it here
+        if (err) console.log('Failed to save '+req.body.title);
+    
+        // success case, the file was saved
+        console.log('Saved '+req.body.title);
+        res.status(201).send("Saved " + req.body.title + " as raw logs.");
+    });
 }));
 
 RootRouter.put('/log', asyncHandler(async (req, res, next) => {

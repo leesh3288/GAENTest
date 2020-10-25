@@ -341,9 +341,6 @@ public class MainActivity extends Activity{
 
         // Load calibration data
         loadCalibrationData();
-
-        // DEBUG
-        addInitScanLogs(10);
 	}
 
 	@Override
@@ -942,10 +939,82 @@ public class MainActivity extends Activity{
         }
     }
 
-    public void uploadServer() {
-        //DEBUG
-        log(readFromFile("log",deviceId,testId));
+    public void uploadJSON(String endpoint, String jsonMessage) {
+        HttpURLConnection c = null;
+        try {
+            URL u = new URL("http://" + serverUrl + endpoint);
+            c = (HttpURLConnection) u.openConnection();
+            c.setRequestMethod("PUT");
+            c.setRequestProperty("Content-Type", "application/json");
+            c.setRequestProperty("Content-Encoding", "gzip");
+            c.setUseCaches(false);
+            c.setDefaultUseCaches(false);
+            c.setAllowUserInteraction(false);
+            c.setDoOutput(true);
+            c.setDoInput(true);
+            c.setConnectTimeout(2000);
+            c.setReadTimeout(10000);
 
+            OutputStreamWriter wr = new OutputStreamWriter(new GZIPOutputStream(c.getOutputStream()));
+            wr.write(jsonMessage);
+            wr.flush();
+            wr.close();
+
+            int status = c.getResponseCode();
+
+            if (status == 200 || status == 201) {
+                StringBuilder sb = new StringBuilder();
+                InputStream is = c.getInputStream();
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                    String result;
+                    while ((result = br.readLine()) != null) {
+                        sb.append(result).append("\n");
+                    }
+                }
+                log("uploadServer success, response: " + sb.toString());
+            } else {
+                StringBuilder sb = new StringBuilder();
+                InputStream es = c.getErrorStream();
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(es, StandardCharsets.UTF_8))) {
+                    String result;
+                    while ((result = br.readLine()) != null) {
+                        sb.append(result).append("\n");
+                    }
+                }
+                logError("uploadServer failed (" + status + "), response: " + sb.toString());
+            }
+        } catch (SocketTimeoutException e) {
+            logError("uploadServer timed out, data reinserted for later upload.");
+            e.printStackTrace();
+        } catch (IOException e) {
+            logError("uploadServer IOException raised, data reinserted for later upload.");
+            e.printStackTrace();
+        } finally {
+            if (c != null) {
+                try {
+                    c.disconnect();
+                } catch (Exception e) {
+                    logError("uploadServer exception caught while disconnecting.");
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public void uploadRawlogs() {
+        try {
+            for (String file: this.fileList()) {
+                JSONObject obj = new JSONObject();
+                obj.put("title",file);
+                obj.put("msg",readFromFile(file));
+                uploadJSON("/raw_log",obj.toString());
+            }
+        } catch (Exception e) {
+            log("Failed to create file JSON object");
+        }
+    }
+
+    public void uploadServer() {
         new Thread() {
             @Override
             public void run() {
@@ -976,9 +1045,8 @@ public class MainActivity extends Activity{
         }
     }
 
-    public String readFromFile(String type, String deviceId, String testId) {
+    public String readFromFile(String filename) {
         log("readFromFile called.");
-        String filename = type + "_" + deviceId + "_" + testId;
         StringBuilder msg = new StringBuilder();
 
         try {
@@ -1114,12 +1182,5 @@ public class MainActivity extends Activity{
         scanned.clear();
         scanInstances.clear();
         // clear genLogs?
-    }
-
-    /** DEBUG **/
-    public void addInitScanLogs(int size) {
-        for (int i=0; i<size; i++) {
-            scanned.add(ScanLogEntry.test());
-        }
     }
 }
